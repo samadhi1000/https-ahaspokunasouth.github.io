@@ -78,7 +78,7 @@ const Auth = {
         const urlParams = new URLSearchParams(window.location.search);
         const viewId = urlParams.get('view');
         if (viewId) {
-            setTimeout(() => viewRecord(parseInt(viewId)), 500);
+            setTimeout(() => viewRecord(viewId), 500);
             // Clean up URL without reload
             window.history.replaceState({}, document.title, window.location.pathname);
         }
@@ -1019,9 +1019,9 @@ async function loadRecords(query = '') {
             <td style="text-align:center" class="text-muted">${date}</td>
             <td>
                 <div class="d-flex gap-8">
-                    <button class="btn btn-secondary btn-sm" onclick="viewRecord(${r.id})" title="බලන්න">👁️</button>
-                    <button class="btn btn-ghost btn-sm" onclick="openEditRecord(${r.id})" title="සංස්කරණය">✏️</button>
-                    <button class="btn btn-danger btn-sm" onclick="deleteRecord(${r.id}, '${(h.fullName || '').replace(/'/g, "\\'")}')"  >🗑️</button>
+                    <button class="btn btn-secondary btn-sm" onclick="viewRecord('${r.id}')" title="බලන්න">👁️</button>
+                    <button class="btn btn-ghost btn-sm" onclick="openEditRecord('${r.id}')" title="සංස්කරණය">✏️</button>
+                    <button class="btn btn-danger btn-sm" onclick="deleteRecord('${r.id}', '${(h.fullName || '').replace(/'/g, "\\'")}')"  >🗑️</button>
                 </div>
             </td>
         </tr>`;

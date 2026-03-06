@@ -1,16 +1,33 @@
 /**
- * db.js - IndexedDB Abstraction Layer v2
+ * db.js - Firebase Firestore Migration v3
  * Ahaspokuna South Family Data Management System
- * v2: Added users store + auth methods with SHA-256 hashing
+ * This version replaces IndexedDB with Firebase Cloud Firestore for multi-device sync.
  */
 
-const DB_NAME = 'AhaspokunaDB';
-const DB_VERSION = 2;               // bumped from 1 → 2 to add users + log stores
-const STORE_FAMILIES = 'families';
-const STORE_USERS = 'users';
-const STORE_LOG = 'activityLog';
+// ─── FIREBASE CONFIGURATION ───
+// මචං, මෙතනට ඔයාගේ Firebase Project එකේ Config එක දාන්න.
+const firebaseConfig = {
+    apiKey: "AIzaSyBPLRRY20Sc039T46I4lfCRz4frtWN5wxY",
+    authDomain: "ahaspokuna-db.firebaseapp.com",
+    projectId: "ahaspokuna-db",
+    storageBucket: "ahaspokuna-db.firebasestorage.app",
+    messagingSenderId: "934510823567",
+    appId: "1:934510823567:web:f17224e0abfe2f102008fa",
+    measurementId: "G-HEV0Y6W42R"
+};
 
-/* ─── SHA-256 via SubtleCrypto (no library needed) ─── */
+// Initialize Firebase
+if (!firebase.apps.length) {
+    firebase.initializeApp(firebaseConfig);
+}
+const fs = firebase.firestore();
+
+// Collections
+const COL_FAMILIES = 'families';
+const COL_USERS = 'users';
+const COL_LOG = 'activityLog';
+
+/* ─── SHA-256 via SubtleCrypto ─── */
 async function hashPassword(plain) {
     const enc = new TextEncoder();
     const buf = await crypto.subtle.digest('SHA-256', enc.encode(plain));
@@ -18,290 +35,197 @@ async function hashPassword(plain) {
 }
 
 class Database {
-    constructor() { this.db = null; }
+    constructor() { }
 
-    open() {
-        return new Promise((resolve, reject) => {
-            const request = indexedDB.open(DB_NAME, DB_VERSION);
-
-            request.onupgradeneeded = (event) => {
-                const db = event.target.result;
-                // -- families store (unchanged) --
-                if (!db.objectStoreNames.contains(STORE_FAMILIES)) {
-                    const store = db.createObjectStore(STORE_FAMILIES, { keyPath: 'id', autoIncrement: true });
-                    store.createIndex('nic', 'headOfHousehold.nic', { unique: false });
-                    store.createIndex('name', 'headOfHousehold.fullName', { unique: false });
-                    store.createIndex('createdAt', 'createdAt', { unique: false });
-                }
-                // -- users store (NEW in v2) --
-                if (!db.objectStoreNames.contains(STORE_USERS)) {
-                    const us = db.createObjectStore(STORE_USERS, { keyPath: 'id', autoIncrement: true });
-                    us.createIndex('username', 'username', { unique: true });
-                }
-                // -- activity log store (NEW in v2) --
-                if (!db.objectStoreNames.contains(STORE_LOG)) {
-                    const ls = db.createObjectStore(STORE_LOG, { keyPath: 'id', autoIncrement: true });
-                    ls.createIndex('ts', 'ts', { unique: false });
-                }
-            };
-
-            request.onsuccess = (e) => { this.db = e.target.result; resolve(this.db); };
-            request.onerror = (e) => reject('Database error: ' + e.target.errorCode);
-        });
-    }
-
-    ensureOpen() {
-        if (this.db) return Promise.resolve(this.db);
-        return this.open();
-    }
+    // Mock open for compatibility with app.js
+    async open() { return true; }
 
     /* ══════════════════════  FAMILY CRUD  ════════════════════════ */
 
-    saveFamily(data) {
-        return this.ensureOpen().then(db => new Promise((resolve, reject) => {
-            data.createdAt = data.createdAt || new Date().toISOString();
-            data.updatedAt = new Date().toISOString();
-            const req = db.transaction([STORE_FAMILIES], 'readwrite').objectStore(STORE_FAMILIES).add(data);
-            req.onsuccess = e => resolve(e.target.result);
-            req.onerror = e => reject(e.target.error);
-        }));
+    async saveFamily(data) {
+        data.createdAt = data.createdAt || new Date().toISOString();
+        data.updatedAt = new Date().toISOString();
+        // Add to Firestore and get the ID
+        const docRef = await fs.collection(COL_FAMILIES).add(data);
+        // We'll also store the firestore ID inside the data for easier access
+        await docRef.update({ id: docRef.id });
+        return docRef.id;
     }
 
-    updateFamily(data) {
-        return this.ensureOpen().then(db => new Promise((resolve, reject) => {
-            data.updatedAt = new Date().toISOString();
-            const req = db.transaction([STORE_FAMILIES], 'readwrite').objectStore(STORE_FAMILIES).put(data);
-            req.onsuccess = e => resolve(e.target.result);
-            req.onerror = e => reject(e.target.error);
-        }));
+    async updateFamily(data) {
+        if (!data.id) throw new Error("ID missing for update");
+        data.updatedAt = new Date().toISOString();
+        const id = data.id.toString(); // Ensure string
+        await fs.collection(COL_FAMILIES).doc(id).set(data, { merge: true });
+        return id;
     }
 
-    getFamily(id) {
-        return this.ensureOpen().then(db => new Promise((resolve, reject) => {
-            const req = db.transaction([STORE_FAMILIES], 'readonly').objectStore(STORE_FAMILIES).get(id);
-            req.onsuccess = e => resolve(e.target.result);
-            req.onerror = e => reject(e.target.error);
-        }));
+    async getFamily(id) {
+        const doc = await fs.collection(COL_FAMILIES).doc(id.toString()).get();
+        return doc.exists ? doc.data() : null;
     }
 
-    getAllFamilies() {
-        return this.ensureOpen().then(db => new Promise((resolve, reject) => {
-            const req = db.transaction([STORE_FAMILIES], 'readonly').objectStore(STORE_FAMILIES).getAll();
-            req.onsuccess = e => resolve(e.target.result);
-            req.onerror = e => reject(e.target.error);
-        }));
+    async getAllFamilies() {
+        const snapshot = await fs.collection(COL_FAMILIES).get();
+        return snapshot.docs.map(doc => doc.data());
     }
 
-    deleteFamily(id) {
-        return this.ensureOpen().then(db => new Promise((resolve, reject) => {
-            const req = db.transaction([STORE_FAMILIES], 'readwrite').objectStore(STORE_FAMILIES).delete(id);
-            req.onsuccess = () => resolve(true);
-            req.onerror = e => reject(e.target.error);
-        }));
+    async deleteFamily(id) {
+        await fs.collection(COL_FAMILIES).doc(id.toString()).delete();
+        return true;
     }
 
-    searchFamilies(query) {
-        return this.getAllFamilies().then(families => {
-            if (!query) return families;
-            const q = query.toLowerCase().trim();
-            return families.filter(f => {
-                const name = (f.headOfHousehold?.fullName || '').toLowerCase();
-                const nic = (f.headOfHousehold?.nic || '').toLowerCase();
-                const address = (f.headOfHousehold?.address || '').toLowerCase();
-                return name.includes(q) || nic.includes(q) || address.includes(q);
-            });
+    async searchFamilies(query) {
+        const families = await this.getAllFamilies();
+        if (!query) return families;
+        const q = query.toLowerCase().trim();
+        return families.filter(f => {
+            const name = (f.headOfHousehold?.fullName || '').toLowerCase();
+            const nic = (f.headOfHousehold?.nic || '').toLowerCase();
+            const address = (f.headOfHousehold?.address || '').toLowerCase();
+            return name.includes(q) || nic.includes(q) || address.includes(q);
         });
     }
 
-    getStats() {
-        return this.getAllFamilies().then(families => {
-            let totalMembers = 0, aidRecipients = 0;
-            families.forEach(f => {
-                const members = f.members || [];
-                totalMembers += 1 + members.length;
-                const aid = f.stateAid || {};
-                if (aid.aswasuma || aid.elders || aid.mahajanadara || aid.mahapola ||
-                    aid.scholarship5 || aid.medical || aid.disability) aidRecipients++;
-                members.forEach(m => {
-                    const ma = m.stateAid || {};
-                    if (ma.aswasuma || ma.elders || ma.mahajanadara || ma.mahapola ||
-                        ma.scholarship5 || ma.medical || ma.disability) aidRecipients++;
-                });
+    async getStats() {
+        const families = await this.getAllFamilies();
+        let totalMembers = 0, aidRecipients = 0;
+        families.forEach(f => {
+            const members = f.members || [];
+            totalMembers += 1 + members.length;
+            const aid = f.stateAid || {};
+            const keys = ['aswasuma', 'elders', 'mahajanadara', 'mahapola', 'scholarship5', 'medical', 'disability'];
+            if (keys.some(k => aid[k])) aidRecipients++;
+            members.forEach(m => {
+                const ma = m.stateAid || {};
+                if (keys.some(k => ma[k])) aidRecipients++;
             });
-            return { totalFamilies: families.length, totalMembers, aidRecipients };
         });
+        return { totalFamilies: families.length, totalMembers, aidRecipients };
     }
 
     /* ══════════════════════  BACKUP / RESTORE  ═══════════════════ */
 
     async exportDatabaseJSON() {
-        const db = await this.ensureOpen();
-        return new Promise(async (resolve, reject) => {
-            try {
-                // Get all families, users, and logs
-                const families = await this.getAllFamilies();
-                const users = await this.getAllUsers();
-                const logs = await this.ensureOpen().then(db => new Promise((res, rej) => {
-                    const req = db.transaction([STORE_LOG], 'readonly').objectStore(STORE_LOG).getAll();
-                    req.onsuccess = e => res(e.target.result);
-                    req.onerror = e => rej(e.target.error);
-                }));
+        const families = await this.getAllFamilies();
+        const users = await this.getAllUsers();
+        const logsSnapshot = await fs.collection(COL_LOG).get();
+        const logs = logsSnapshot.docs.map(d => d.data());
 
-                const backupData = {
-                    version: DB_VERSION,
-                    timestamp: new Date().toISOString(),
-                    families,
-                    users,
-                    logs
-                };
-                resolve(JSON.stringify(backupData, null, 2));
-            } catch (err) {
-                reject(err);
-            }
-        });
+        const backupData = {
+            version: 'Firebase-v1',
+            timestamp: new Date().toISOString(),
+            families,
+            users,
+            logs
+        };
+        return JSON.stringify(backupData, null, 2);
     }
 
     async importDatabaseJSON(jsonStr) {
-        return new Promise(async (resolve, reject) => {
-            try {
-                const data = JSON.parse(jsonStr);
-                if (!data || !Array.isArray(data.families) || !Array.isArray(data.users)) {
-                    throw new Error("Invalid backup format. Must contain valid 'families' and 'users' arrays.");
-                }
+        const data = JSON.parse(jsonStr);
+        if (!data || !Array.isArray(data.families) || !Array.isArray(data.users)) {
+            throw new Error("Invalid format");
+        }
 
-                const db = await this.ensureOpen();
-
-                // Start a readwrite transaction for all stores
-                const tx = db.transaction([STORE_FAMILIES, STORE_USERS, STORE_LOG], 'readwrite');
-
-                tx.oncomplete = () => resolve(true);
-                tx.onerror = (e) => reject(e.target.error);
-
-                const familyStore = tx.objectStore(STORE_FAMILIES);
-                const userStore = tx.objectStore(STORE_USERS);
-                const logStore = tx.objectStore(STORE_LOG);
-
-                // Option: We could clear the stores first, or just overwrite by ID.
-                // Re-importing by completely clearing first to ensure an exact mirror.
-                familyStore.clear();
-                userStore.clear();
-                logStore.clear();
-
-                for (const f of data.families) familyStore.put(f);
-                for (const u of data.users) userStore.put(u);
-                if (Array.isArray(data.logs)) {
-                    for (const l of data.logs) logStore.put(l);
-                }
-
-            } catch (err) {
-                reject(err);
-            }
-        });
+        // Import families
+        const batch = fs.batch();
+        for (const f of data.families) {
+            const ref = fs.collection(COL_FAMILIES).doc(f.id ? f.id.toString() : undefined);
+            batch.set(ref, f);
+        }
+        // Import users
+        for (const u of data.users) {
+            const ref = fs.collection(COL_USERS).doc(u.id ? u.id.toString() : u.username);
+            batch.set(ref, u);
+        }
+        await batch.commit();
+        return true;
     }
 
     /* ══════════════════════  USER AUTH CRUD  ═════════════════════ */
 
-    /** Returns count of users (0 = first run) */
-    getUserCount() {
-        return this.ensureOpen().then(db => new Promise((resolve, reject) => {
-            const req = db.transaction([STORE_USERS], 'readonly').objectStore(STORE_USERS).count();
-            req.onsuccess = e => resolve(e.target.result);
-            req.onerror = e => reject(e.target.error);
-        }));
+    async getUserCount() {
+        const snapshot = await fs.collection(COL_USERS).get();
+        return snapshot.size;
     }
 
-    getAllUsers() {
-        return this.ensureOpen().then(db => new Promise((resolve, reject) => {
-            const req = db.transaction([STORE_USERS], 'readonly').objectStore(STORE_USERS).getAll();
-            req.onsuccess = e => resolve(e.target.result);
-            req.onerror = e => reject(e.target.error);
-        }));
+    async getAllUsers() {
+        const snapshot = await fs.collection(COL_USERS).get();
+        return snapshot.docs.map(doc => doc.data());
     }
 
-    /** Create a new user. Throws if username taken. */
     async createUser({ username, password, role }) {
         const passwordHash = await hashPassword(password);
-        return this.ensureOpen().then(db => new Promise((resolve, reject) => {
-            const req = db.transaction([STORE_USERS], 'readwrite').objectStore(STORE_USERS).add({
-                username, passwordHash, role,
-                createdAt: new Date().toISOString()
-            });
-            req.onsuccess = e => resolve(e.target.result);
-            req.onerror = e => reject(
-                e.target.error?.name === 'ConstraintError'
-                    ? new Error('username_taken')
-                    : e.target.error
-            );
-        }));
+        // Check if exists
+        const existing = await fs.collection(COL_USERS).where('username', '==', username).get();
+        if (!existing.empty) throw new Error('username_taken');
+
+        const docRef = await fs.collection(COL_USERS).add({
+            username, passwordHash, role,
+            createdAt: new Date().toISOString()
+        });
+        await docRef.update({ id: docRef.id });
+        return docRef.id;
     }
 
-    deleteUser(id) {
-        return this.ensureOpen().then(db => new Promise((resolve, reject) => {
-            const req = db.transaction([STORE_USERS], 'readwrite').objectStore(STORE_USERS).delete(id);
-            req.onsuccess = () => resolve(true);
-            req.onerror = e => reject(e.target.error);
-        }));
+    async deleteUser(id) {
+        await fs.collection(COL_USERS).doc(id.toString()).delete();
+        return true;
     }
 
-    async changePassword(userId, newPassword) {
-        const passwordHash = await hashPassword(newPassword);
-        return this.ensureOpen().then(db => new Promise((resolve, reject) => {
-            const store = db.transaction([STORE_USERS], 'readwrite').objectStore(STORE_USERS);
-            const get = store.get(userId);
-            get.onsuccess = e => {
-                const user = e.target.result;
-                if (!user) return reject(new Error('User not found'));
-                user.passwordHash = passwordHash;
-                const put = store.put(user);
-                put.onsuccess = () => resolve(true);
-                put.onerror = ev => reject(ev.target.error);
-            };
-            get.onerror = e => reject(e.target.error);
-        }));
-    }
-
-    /** Returns user object if credentials valid, null otherwise */
     async verifyUser(username, password) {
         const passwordHash = await hashPassword(password);
-        return this.ensureOpen().then(db => new Promise((resolve, reject) => {
-            const idx = db.transaction([STORE_USERS], 'readonly')
-                .objectStore(STORE_USERS)
-                .index('username');
-            const req = idx.get(username);
-            req.onsuccess = e => {
-                const user = e.target.result;
-                if (user && user.passwordHash === passwordHash) {
-                    resolve({ id: user.id, username: user.username, role: user.role });
-                } else {
-                    resolve(null);
-                }
-            };
-            req.onerror = e => reject(e.target.error);
-        }));
+        const snapshot = await fs.collection(COL_USERS).where('username', '==', username).get();
+        if (snapshot.empty) return null;
+        const user = snapshot.docs[0].data();
+        if (user.passwordHash === passwordHash) {
+            return { id: snapshot.docs[0].id, username: user.username, role: user.role };
+        }
+        return null;
     }
 
     /* ══════════════════════  ACTIVITY LOG  ═══════════════════════ */
 
-    addLog(entry) {
-        return this.ensureOpen().then(db => new Promise((resolve, reject) => {
-            const req = db.transaction([STORE_LOG], 'readwrite').objectStore(STORE_LOG).add({
-                ...entry,
-                ts: new Date().toISOString()
-            });
-            req.onsuccess = e => resolve(e.target.result);
-            req.onerror = e => reject(e.target.error);
-        }));
+    async addLog(entry) {
+        const log = { ...entry, ts: new Date().toISOString() };
+        await fs.collection(COL_LOG).add(log);
+        return true;
     }
 
-    getRecentLogs(limit = 50) {
-        return this.ensureOpen().then(db => new Promise((resolve, reject) => {
-            const req = db.transaction([STORE_LOG], 'readonly').objectStore(STORE_LOG).getAll();
-            req.onsuccess = e => {
-                const all = e.target.result;
-                resolve(all.slice(-limit).reverse()); // newest first
+    async getRecentLogs(limitCount = 50) {
+        const snapshot = await fs.collection(COL_LOG).orderBy('ts', 'desc').limit(limitCount).get();
+        return snapshot.docs.map(doc => doc.data());
+    }
+
+    /* ══════════════════════  MIGRATION HELPER  ═══════════════════ */
+    /** මචං, මේක run කළොත් ඔයාගේ computer එකේ තියෙන පරණ දත්ත ටික Firebase එකට යවන්න පුළුවන් */
+    async migrateFromIndexedDB() {
+        console.log("Migration started from IndexedDB...");
+        return new Promise((resolve, reject) => {
+            const request = indexedDB.open('AhaspokunaDB');
+            request.onsuccess = async (e) => {
+                const idb = e.target.result;
+                const tx = idb.transaction(['families', 'users', 'activityLog'], 'readonly');
+
+                const families = await new Promise(res => tx.objectStore('families').getAll().onsuccess = ev => res(ev.target.result));
+                const users = await new Promise(res => tx.objectStore('users').getAll().onsuccess = ev => res(ev.target.result));
+                const logs = await new Promise(res => tx.objectStore('activityLog').getAll().onsuccess = ev => res(ev.target.result));
+
+                console.log(`Found: ${families.length} families, ${users.length} users.`);
+
+                // Upload to Firebase
+                for (const f of families) await this.saveFamily(f);
+                for (const u of users) {
+                    await fs.collection(COL_USERS).doc(u.username).set(u);
+                }
+                for (const l of logs) await this.addLog(l);
+
+                console.log("Migration complete!");
+                resolve(true);
             };
-            req.onerror = e => reject(e.target.error);
-        }));
+            request.onerror = e => reject(e);
+        });
     }
 }
 
