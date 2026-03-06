@@ -1,77 +1,52 @@
 /**
- * db.js - Firebase Firestore Database Layer
+ * db.js - IndexedDB Abstraction Layer v2
  * Ahaspokuna South Family Data Management System
- *
- * ════════════════════════════════════════════════════════════
- *  SETUP INSTRUCTIONS (do this once before deploying):
- *
- *  1. Go to https://console.firebase.google.com
- *  2. Click "Add project" → name it "ahaspokuna-db" → Create
- *  3. In the left sidebar click "Firestore Database"
- *     → "Create database" → choose "Start in test mode" → Next → Enable
- *  4. Click the ⚙️ gear icon → "Project settings"
- *  5. Scroll to "Your apps" → click the Web icon (</>)
- *  6. Register the app (any nickname is fine) → copy the firebaseConfig object
- *  7. Paste it below, replacing the placeholder values
- * ════════════════════════════════════════════════════════════
+ * v2: Added users store + auth methods with SHA-256 hashing
  */
 
-// ▼▼▼ PASTE YOUR FIREBASE CONFIG HERE ▼▼▼
-const firebaseConfig = {
-    apiKey: "YOUR_API_KEY",
-    authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
-    projectId: "YOUR_PROJECT_ID",
-    storageBucket: "YOUR_PROJECT_ID.appspot.com",
-    messagingSenderId: "YOUR_SENDER_ID",
-    appId: "YOUR_APP_ID"
-};
-// ▲▲▲ PASTE YOUR FIREBASE CONFIG HERE ▲▲▲
+const DB_NAME = 'AhaspokunaDB';
+const DB_VERSION = 2;               // bumped from 1 → 2 to add users + log stores
+const STORE_FAMILIES = 'families';
+const STORE_USERS = 'users';
+const STORE_LOG = 'activityLog';
 
-/* ─── Collection names (mirrors the old IndexedDB stores) ─── */
-const COL_FAMILIES = 'families';
-const COL_USERS = 'users';
-const COL_LOG = 'activityLog';
-
-/* ─── SHA-256 (same as before – no library needed) ─── */
+/* ─── SHA-256 via SubtleCrypto (no library needed) ─── */
 async function hashPassword(plain) {
     const enc = new TextEncoder();
     const buf = await crypto.subtle.digest('SHA-256', enc.encode(plain));
-    return Array.from(new Uint8Array(buf))
-        .map(b => b.toString(16).padStart(2, '0')).join('');
+    return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('');
 }
-
-/* ─── Firestore DB reference (set during open()) ─── */
-let _db = null;
 
 class Database {
     constructor() { this.db = null; }
 
-    /* ══════════════════════  INIT  ════════════════════════ */
-
     open() {
         return new Promise((resolve, reject) => {
-            try {
-                if (!firebase.apps.length) {
-                    firebase.initializeApp(firebaseConfig);
+            const request = indexedDB.open(DB_NAME, DB_VERSION);
+
+            request.onupgradeneeded = (event) => {
+                const db = event.target.result;
+                // -- families store (unchanged) --
+                if (!db.objectStoreNames.contains(STORE_FAMILIES)) {
+                    const store = db.createObjectStore(STORE_FAMILIES, { keyPath: 'id', autoIncrement: true });
+                    store.createIndex('nic', 'headOfHousehold.nic', { unique: false });
+                    store.createIndex('name', 'headOfHousehold.fullName', { unique: false });
+                    store.createIndex('createdAt', 'createdAt', { unique: false });
                 }
-                _db = firebase.firestore();
-                this.db = _db;
+                // -- users store (NEW in v2) --
+                if (!db.objectStoreNames.contains(STORE_USERS)) {
+                    const us = db.createObjectStore(STORE_USERS, { keyPath: 'id', autoIncrement: true });
+                    us.createIndex('username', 'username', { unique: true });
+                }
+                // -- activity log store (NEW in v2) --
+                if (!db.objectStoreNames.contains(STORE_LOG)) {
+                    const ls = db.createObjectStore(STORE_LOG, { keyPath: 'id', autoIncrement: true });
+                    ls.createIndex('ts', 'ts', { unique: false });
+                }
+            };
 
-                // Enable offline persistence so the app works even with patchy connectivity
-                _db.enablePersistence({ synchronizeTabs: true })
-                    .catch(err => {
-                        // Not critical – app still works online
-                        if (err.code === 'failed-precondition') {
-                            console.warn('Firestore offline persistence: multiple tabs open.');
-                        } else if (err.code === 'unimplemented') {
-                            console.warn('Firestore offline persistence not supported in this browser.');
-                        }
-                    });
-
-                resolve(_db);
-            } catch (e) {
-                reject('Firebase init error: ' + e.message);
-            }
+            request.onsuccess = (e) => { this.db = e.target.result; resolve(this.db); };
+            request.onerror = (e) => reject('Database error: ' + e.target.errorCode);
         });
     }
 
@@ -83,46 +58,46 @@ class Database {
     /* ══════════════════════  FAMILY CRUD  ════════════════════════ */
 
     saveFamily(data) {
-        return this.ensureOpen().then(db => {
+        return this.ensureOpen().then(db => new Promise((resolve, reject) => {
             data.createdAt = data.createdAt || new Date().toISOString();
             data.updatedAt = new Date().toISOString();
-            // Remove any legacy numeric id before saving
-            const { id: _ignored, ...clean } = data;
-            return db.collection(COL_FAMILIES).add(clean)
-                .then(docRef => docRef.id);           // return Firestore doc id
-        });
+            const req = db.transaction([STORE_FAMILIES], 'readwrite').objectStore(STORE_FAMILIES).add(data);
+            req.onsuccess = e => resolve(e.target.result);
+            req.onerror = e => reject(e.target.error);
+        }));
     }
 
     updateFamily(data) {
-        return this.ensureOpen().then(db => {
+        return this.ensureOpen().then(db => new Promise((resolve, reject) => {
             data.updatedAt = new Date().toISOString();
-            const docId = String(data.id);
-            const { id: _ignored, ...clean } = data;
-            return db.collection(COL_FAMILIES).doc(docId).set(clean)
-                .then(() => docId);
-        });
+            const req = db.transaction([STORE_FAMILIES], 'readwrite').objectStore(STORE_FAMILIES).put(data);
+            req.onsuccess = e => resolve(e.target.result);
+            req.onerror = e => reject(e.target.error);
+        }));
     }
 
     getFamily(id) {
-        return this.ensureOpen().then(db =>
-            db.collection(COL_FAMILIES).doc(String(id)).get()
-                .then(snap => snap.exists ? { id: snap.id, ...snap.data() } : null)
-        );
+        return this.ensureOpen().then(db => new Promise((resolve, reject) => {
+            const req = db.transaction([STORE_FAMILIES], 'readonly').objectStore(STORE_FAMILIES).get(id);
+            req.onsuccess = e => resolve(e.target.result);
+            req.onerror = e => reject(e.target.error);
+        }));
     }
 
     getAllFamilies() {
-        return this.ensureOpen().then(db =>
-            db.collection(COL_FAMILIES)
-                .orderBy('createdAt', 'asc')
-                .get()
-                .then(snap => snap.docs.map(d => ({ id: d.id, ...d.data() })))
-        );
+        return this.ensureOpen().then(db => new Promise((resolve, reject) => {
+            const req = db.transaction([STORE_FAMILIES], 'readonly').objectStore(STORE_FAMILIES).getAll();
+            req.onsuccess = e => resolve(e.target.result);
+            req.onerror = e => reject(e.target.error);
+        }));
     }
 
     deleteFamily(id) {
-        return this.ensureOpen().then(db =>
-            db.collection(COL_FAMILIES).doc(String(id)).delete().then(() => true)
-        );
+        return this.ensureOpen().then(db => new Promise((resolve, reject) => {
+            const req = db.transaction([STORE_FAMILIES], 'readwrite').objectStore(STORE_FAMILIES).delete(id);
+            req.onsuccess = () => resolve(true);
+            req.onerror = e => reject(e.target.error);
+        }));
     }
 
     searchFamilies(query) {
@@ -157,91 +132,176 @@ class Database {
         });
     }
 
-    /* ══════════════════════  USER AUTH CRUD  ═════════════════════ */
+    /* ══════════════════════  BACKUP / RESTORE  ═══════════════════ */
 
-    getUserCount() {
-        return this.ensureOpen().then(db =>
-            db.collection(COL_USERS).get()
-                .then(snap => snap.size)
-        );
-    }
+    async exportDatabaseJSON() {
+        const db = await this.ensureOpen();
+        return new Promise(async (resolve, reject) => {
+            try {
+                // Get all families, users, and logs
+                const families = await this.getAllFamilies();
+                const users = await this.getAllUsers();
+                const logs = await this.ensureOpen().then(db => new Promise((res, rej) => {
+                    const req = db.transaction([STORE_LOG], 'readonly').objectStore(STORE_LOG).getAll();
+                    req.onsuccess = e => res(e.target.result);
+                    req.onerror = e => rej(e.target.error);
+                }));
 
-    getAllUsers() {
-        return this.ensureOpen().then(db =>
-            db.collection(COL_USERS).orderBy('createdAt', 'asc').get()
-                .then(snap => snap.docs.map(d => ({ id: d.id, ...d.data() })))
-        );
-    }
-
-    async createUser({ username, password, role }) {
-        const passwordHash = await hashPassword(password);
-        return this.ensureOpen().then(async db => {
-            // Enforce unique username
-            const existing = await db.collection(COL_USERS)
-                .where('username', '==', username).get();
-            if (!existing.empty) throw new Error('username_taken');
-
-            return db.collection(COL_USERS).add({
-                username,
-                passwordHash,
-                role,
-                createdAt: new Date().toISOString()
-            }).then(docRef => docRef.id);
+                const backupData = {
+                    version: DB_VERSION,
+                    timestamp: new Date().toISOString(),
+                    families,
+                    users,
+                    logs
+                };
+                resolve(JSON.stringify(backupData, null, 2));
+            } catch (err) {
+                reject(err);
+            }
         });
     }
 
+    async importDatabaseJSON(jsonStr) {
+        return new Promise(async (resolve, reject) => {
+            try {
+                const data = JSON.parse(jsonStr);
+                if (!data || !Array.isArray(data.families) || !Array.isArray(data.users)) {
+                    throw new Error("Invalid backup format. Must contain valid 'families' and 'users' arrays.");
+                }
+
+                const db = await this.ensureOpen();
+
+                // Start a readwrite transaction for all stores
+                const tx = db.transaction([STORE_FAMILIES, STORE_USERS, STORE_LOG], 'readwrite');
+
+                tx.oncomplete = () => resolve(true);
+                tx.onerror = (e) => reject(e.target.error);
+
+                const familyStore = tx.objectStore(STORE_FAMILIES);
+                const userStore = tx.objectStore(STORE_USERS);
+                const logStore = tx.objectStore(STORE_LOG);
+
+                // Option: We could clear the stores first, or just overwrite by ID.
+                // Re-importing by completely clearing first to ensure an exact mirror.
+                familyStore.clear();
+                userStore.clear();
+                logStore.clear();
+
+                for (const f of data.families) familyStore.put(f);
+                for (const u of data.users) userStore.put(u);
+                if (Array.isArray(data.logs)) {
+                    for (const l of data.logs) logStore.put(l);
+                }
+
+            } catch (err) {
+                reject(err);
+            }
+        });
+    }
+
+    /* ══════════════════════  USER AUTH CRUD  ═════════════════════ */
+
+    /** Returns count of users (0 = first run) */
+    getUserCount() {
+        return this.ensureOpen().then(db => new Promise((resolve, reject) => {
+            const req = db.transaction([STORE_USERS], 'readonly').objectStore(STORE_USERS).count();
+            req.onsuccess = e => resolve(e.target.result);
+            req.onerror = e => reject(e.target.error);
+        }));
+    }
+
+    getAllUsers() {
+        return this.ensureOpen().then(db => new Promise((resolve, reject) => {
+            const req = db.transaction([STORE_USERS], 'readonly').objectStore(STORE_USERS).getAll();
+            req.onsuccess = e => resolve(e.target.result);
+            req.onerror = e => reject(e.target.error);
+        }));
+    }
+
+    /** Create a new user. Throws if username taken. */
+    async createUser({ username, password, role }) {
+        const passwordHash = await hashPassword(password);
+        return this.ensureOpen().then(db => new Promise((resolve, reject) => {
+            const req = db.transaction([STORE_USERS], 'readwrite').objectStore(STORE_USERS).add({
+                username, passwordHash, role,
+                createdAt: new Date().toISOString()
+            });
+            req.onsuccess = e => resolve(e.target.result);
+            req.onerror = e => reject(
+                e.target.error?.name === 'ConstraintError'
+                    ? new Error('username_taken')
+                    : e.target.error
+            );
+        }));
+    }
+
     deleteUser(id) {
-        return this.ensureOpen().then(db =>
-            db.collection(COL_USERS).doc(String(id)).delete().then(() => true)
-        );
+        return this.ensureOpen().then(db => new Promise((resolve, reject) => {
+            const req = db.transaction([STORE_USERS], 'readwrite').objectStore(STORE_USERS).delete(id);
+            req.onsuccess = () => resolve(true);
+            req.onerror = e => reject(e.target.error);
+        }));
     }
 
     async changePassword(userId, newPassword) {
         const passwordHash = await hashPassword(newPassword);
-        return this.ensureOpen().then(db =>
-            db.collection(COL_USERS).doc(String(userId))
-                .update({ passwordHash })
-                .then(() => true)
-        );
+        return this.ensureOpen().then(db => new Promise((resolve, reject) => {
+            const store = db.transaction([STORE_USERS], 'readwrite').objectStore(STORE_USERS);
+            const get = store.get(userId);
+            get.onsuccess = e => {
+                const user = e.target.result;
+                if (!user) return reject(new Error('User not found'));
+                user.passwordHash = passwordHash;
+                const put = store.put(user);
+                put.onsuccess = () => resolve(true);
+                put.onerror = ev => reject(ev.target.error);
+            };
+            get.onerror = e => reject(e.target.error);
+        }));
     }
 
+    /** Returns user object if credentials valid, null otherwise */
     async verifyUser(username, password) {
         const passwordHash = await hashPassword(password);
-        return this.ensureOpen().then(db =>
-            db.collection(COL_USERS)
-                .where('username', '==', username)
-                .get()
-                .then(snap => {
-                    if (snap.empty) return null;
-                    const doc = snap.docs[0];
-                    const user = doc.data();
-                    if (user.passwordHash === passwordHash) {
-                        return { id: doc.id, username: user.username, role: user.role };
-                    }
-                    return null;
-                })
-        );
+        return this.ensureOpen().then(db => new Promise((resolve, reject) => {
+            const idx = db.transaction([STORE_USERS], 'readonly')
+                .objectStore(STORE_USERS)
+                .index('username');
+            const req = idx.get(username);
+            req.onsuccess = e => {
+                const user = e.target.result;
+                if (user && user.passwordHash === passwordHash) {
+                    resolve({ id: user.id, username: user.username, role: user.role });
+                } else {
+                    resolve(null);
+                }
+            };
+            req.onerror = e => reject(e.target.error);
+        }));
     }
 
     /* ══════════════════════  ACTIVITY LOG  ═══════════════════════ */
 
     addLog(entry) {
-        return this.ensureOpen().then(db =>
-            db.collection(COL_LOG).add({
+        return this.ensureOpen().then(db => new Promise((resolve, reject) => {
+            const req = db.transaction([STORE_LOG], 'readwrite').objectStore(STORE_LOG).add({
                 ...entry,
                 ts: new Date().toISOString()
-            }).then(docRef => docRef.id)
-        );
+            });
+            req.onsuccess = e => resolve(e.target.result);
+            req.onerror = e => reject(e.target.error);
+        }));
     }
 
     getRecentLogs(limit = 50) {
-        return this.ensureOpen().then(db =>
-            db.collection(COL_LOG)
-                .orderBy('ts', 'desc')
-                .limit(limit)
-                .get()
-                .then(snap => snap.docs.map(d => ({ id: d.id, ...d.data() })))
-        );
+        return this.ensureOpen().then(db => new Promise((resolve, reject) => {
+            const req = db.transaction([STORE_LOG], 'readonly').objectStore(STORE_LOG).getAll();
+            req.onsuccess = e => {
+                const all = e.target.result;
+                resolve(all.slice(-limit).reverse()); // newest first
+            };
+            req.onerror = e => reject(e.target.error);
+        }));
     }
 }
 

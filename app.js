@@ -74,6 +74,14 @@ const Auth = {
         loadRecords();
         updateStats();
         if (u.role === 'admin') loadAdminPanel();
+        // Check for ?view=ID in URL
+        const urlParams = new URLSearchParams(window.location.search);
+        const viewId = urlParams.get('view');
+        if (viewId) {
+            setTimeout(() => viewRecord(parseInt(viewId)), 500);
+            // Clean up URL without reload
+            window.history.replaceState({}, document.title, window.location.pathname);
+        }
     },
 
     applyRoleUI() {
@@ -286,7 +294,7 @@ const App = {
     members: [],           // [{id, label, data:{...all tabs...}}]
     activeMemberIdx: 0,    // 0 = head of household
     activeTab: 0,
-    tabCount: 8,
+    tabCount: 9,
 };
 
 /* ─── DOM Helpers ─── */
@@ -613,6 +621,11 @@ function collectFormData() {
         hasComputer: getRadioValue('hasComputer'),
         hasElectricity: getRadioValue('hasElectricity'),
         unsafeNature: getFieldValue('unsafeNature'),
+        // Tab 9 - MOH Clinics
+        vaccines: getCheckboxValues('vaccines'),
+        attendedSuwanaari: getRadioValue('attendedSuwanaari'),
+        suwanaariLastVisit: getFieldValue('suwanaariLastVisit'),
+        suwanaariDetails: getFieldValue('suwanaariDetails'),
     };
 }
 
@@ -742,6 +755,11 @@ function fillFormData(d) {
     setRadioValue('hasComputer', d.hasComputer);
     setRadioValue('hasElectricity', d.hasElectricity);
     setFieldValue('unsafeNature', d.unsafeNature);
+    // Tab 9
+    setCheckboxValues('vaccines', d.vaccines);
+    setRadioValue('attendedSuwanaari', d.attendedSuwanaari);
+    setFieldValue('suwanaariLastVisit', d.suwanaariLastVisit);
+    setFieldValue('suwanaariDetails', d.suwanaariDetails);
 }
 
 /* ─── Dynamic Rows ─── */
@@ -1043,6 +1061,9 @@ async function viewRecord(id) {
         }
 
         viewBody.innerHTML = `
+        <div style="display:flex; justify-content:center; margin-bottom:20px; background:white; padding:15px; border-radius:12px; border:2px solid var(--gold);">
+            <div id="view-qr-code"></div>
+        </div>
         <div class="view-section">
             <div class="view-section-title">👤 පුද්ගල තොරතුරු</div>
             <div class="view-grid">
@@ -1114,6 +1135,15 @@ async function viewRecord(id) {
                 ${row('විදුලිය', h.hasElectricity === 'yes' ? 'ඇත' : 'නැත')}
             </div>
         </div>
+        <div class="view-section">
+            <div class="view-section-title">💉 සෞඛ්‍ය සායන (MOH Clinics)</div>
+            <div class="view-grid">
+                ${row('ලබාගෙන ඇති එන්නත්', h.vaccines && h.vaccines.length ? h.vaccines.join(', ') : 'නැත')}
+                ${row('සුවනාරි සායනයට සහභාගී වී තිබේද?', h.attendedSuwanaari === 'yes' ? 'ඔව්' : 'නැත')}
+                ${row('අවසාන වරට සහභාගී වූ දිනය', h.suwanaariLastVisit)}
+                ${row('සුවනාරි සායනයෙන් හඳුනාගත් තොරතුරු', h.suwanaariDetails)}
+            </div>
+        </div>
         ${record.members?.length ? `
         <div class="view-section">
             <div class="view-section-title">👨‍👩‍👧‍👦 පවුලේ සාමාජිකයන් (${record.members.length})</div>
@@ -1121,11 +1151,78 @@ async function viewRecord(id) {
         </div>` : ''}`;
 
         viewModal.classList.add('active');
-        $('view-modal-print-btn').onclick = () => window.print();
-        $('view-modal-edit-btn').onclick = () => { viewModal.classList.remove('active'); openEditRecord(id); };
-    } catch (err) {
-        showToast('දෝෂයක් සිදු විය', 'error');
+
+        // Generate QR Code
+        const qrContainer = $('view-qr-code');
+        qrContainer.innerHTML = '';
+
+        // Fix for local file protocol where origin is 'null'
+        const baseUrl = window.location.href.split('?')[0].split('#')[0];
+        const viewUrl = baseUrl + "?view=" + id;
+
+        new QRCode(qrContainer, {
+            text: viewUrl,
+            width: 160,
+            height: 160,
+            colorDark: "#000000",
+            colorLight: "#ffffff",
+            correctLevel: QRCode.CorrectLevel.H
+        });
+
+        // Set up print button
+        const printBtn = $('view-modal-print-btn');
+        printBtn.onclick = () => printRecord(record);
+
+        const editBtn = $('view-modal-edit-btn');
+        editBtn.onclick = () => { viewModal.classList.remove('active'); openEditRecord(id); };
+
+    } catch (e) {
+        console.error(e);
+        showToast('වාර්තාව බැලීමේදී දෝෂයක් සිදු විය', 'error');
     }
+}
+
+async function printRecord(record) {
+    const h = record.headOfHousehold || {};
+    const printContainer = $('qr-print-temp');
+    $('print-name').textContent = h.fullName || 'නමක් නැත';
+    $('print-nic').textContent = 'NIC: ' + (h.nic || '—');
+
+    const qrPrintCont = $('print-qr-container');
+    qrPrintCont.innerHTML = '';
+
+    // Fix for local file protocol
+    const baseUrl = window.location.href.split('?')[0].split('#')[0];
+    const viewUrl = baseUrl + "?view=" + record.id;
+
+    new QRCode(qrPrintCont, {
+        text: viewUrl,
+        width: 200,
+        height: 200,
+        colorDark: "#000000",
+        colorLight: "#ffffff",
+        correctLevel: QRCode.CorrectLevel.H
+    });
+
+    printContainer.style.display = 'block';
+    setTimeout(() => {
+        window.print();
+        printContainer.style.display = 'none';
+    }, 500);
+}
+
+async function downloadQR() {
+    const qrCanvas = document.querySelector('#view-qr-code canvas');
+    if (!qrCanvas) {
+        showToast('බාගත කිරීමට QR කේතයක් නොමැත', 'error');
+        return;
+    }
+    const name = $('print-name')?.textContent || 'QR_Code';
+    const link = document.createElement('a');
+    link.download = `Family_QR_${name}.png`;
+    link.href = qrCanvas.toDataURL('image/png');
+    link.click();
+    showToast('QR කේතය බාගත කරන ලදී', 'success');
 }
 
 /* ─── Stats ─── */
@@ -1141,7 +1238,7 @@ async function exportCSV() {
     const records = await db.getAllFamilies();
     if (!records.length) { showToast('නිර්යාත කිරීමට දත්ත නොමැත', 'info'); return; }
 
-    const headers = ['ID', 'සම්පූර්ණ නම', 'හැඳුනුම්පත', 'ලිපිනය', 'ජංගම', 'ස්ත්‍රී/පුරුෂ', 'උපන් දිනය', 'ආගම', 'ජාතිය', 'විවාහ', 'අධ්‍යාපනය', 'රැකියා', 'වැටුප', 'ආදායම (සම්)', 'වියදම (සම්)', 'ආධාර', 'නිදන්ගත රෝගය', 'ආබාධිත', 'සාමාජිකයන්'];
+    const headers = ['ID', 'සම්පූර්ණ නම', 'හැඳුනුම්පත', 'ලිපිනය', 'ජංගම', 'ස්ත්‍රී/පුරුෂ', 'උපන් දිනය', 'ආගම', 'ජාතිය', 'විවාහ', 'අධ්‍යාපනය', 'රැකියා', 'වැටුප', 'ආදායම (සම්)', 'වියදම (සම්)', 'ආධාර', 'නිදන්ගත රෝගය', 'ආබාධිත', 'මාතෘ/ළමා සහ සුවනාරි සායන', 'සාමාජිකයන්'];
     const rows = records.map(r => {
         const h = r.headOfHousehold || {};
         const sa = h.stateAid || {};
@@ -1165,6 +1262,7 @@ async function exportCSV() {
             `"${aidList}"`,
             h.chronicDisease || '',
             h.disabled || '',
+            `"සුවනාරි: ${h.attendedSuwanaari || '-'} | එන්නත්: ${h.vaccines ? h.vaccines.join('|') : '-'}"`,
             (r.members || []).length + 1,
         ].join(',');
     });
@@ -1179,6 +1277,58 @@ async function exportCSV() {
     URL.revokeObjectURL(url);
     showToast('CSV ගොනුව බාගත කරන ලදී', 'success');
 }
+
+/* ─── Backup & Restore ─── */
+async function exportBackup() {
+    try {
+        const jsonStr = await db.exportDatabaseJSON();
+        const blob = new Blob([jsonStr], { type: 'application/json;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `ahaspokuna_backup_${new Date().toISOString().slice(0, 10)}.json`;
+        a.click();
+        URL.revokeObjectURL(url);
+        db.addLog({ username: Auth.currentUser?.username || 'admin', action: 'export', detail: 'සම්පූර්ණ පද්ධති Backup එකක් ලබාගන්නා ලදී' });
+        showToast('සම්පූර්ණ Backup ගොනුව බාගත කරන ලදී ✓', 'success');
+    } catch (err) {
+        showToast('Backup ලබාගැනීමට අසමත් විය: ' + err, 'error');
+    }
+}
+
+function restoreBackup(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    if (!Auth.isAdmin()) {
+        showToast('ක්‍රියාව අවසර නැත. Admin පමණයි.', 'error');
+        event.target.value = ''; // Reset input
+        return;
+    }
+
+    showConfirm('Backup එක Restore කරන්නද?', `අවවාදයයි: දැනට පවතින සියලුම දත්ත මකාදැමී මෙම ගොනුවේ ඇති දත්ත පමණක් ඇතුලත් වේ. මෙය ස්ථිරවම සිදුවේ.`, async () => {
+        try {
+            const reader = new FileReader();
+            reader.onload = async (e) => {
+                try {
+                    const jsonStr = e.target.result;
+                    await db.importDatabaseJSON(jsonStr);
+                    db.addLog({ username: Auth.currentUser?.username || 'admin', action: 'restore', detail: `පද්ධතිය Backup එකකින් Restore කරන ලදී` });
+                    showToast('පද්ධතිය සාර්ථකව Restore කරන ලදී ✓. නැවත පූරණය වෙමින්...', 'success');
+                    setTimeout(() => { location.reload(); }, 2000);
+                } catch (err) {
+                    showToast('Restore අසමත් විය: ' + err.message, 'error');
+                }
+            };
+            reader.readAsText(file);
+        } catch (err) {
+            showToast('ගොනුව කියවීමට අසමත් විය.', 'error');
+        } finally {
+            event.target.value = ''; // Reset input to allow triggering same file again if needed
+        }
+    });
+}
+
 
 /* ─── Location Feature ─── */
 

@@ -7,6 +7,8 @@
     <title>අහස්පොකුණ දකුණ - පවුල් දත්ත කළමනාකරණ පද්ධතිය</title>
     <meta name="description" content="අහස්පොකුණ දකුණ ග්‍රාම නිලධාරී වසමේ පවුල් දත්ත ඩිජිටල්කරණ පද්ධතිය">
     <link rel="stylesheet" href="style.css">
+    <!-- QR Code Library -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 </head>
 
 <body>
@@ -26,7 +28,16 @@
                     <span id="badge-username">👤 පරිශීලකයා</span>
                     <span class="role-tag" id="badge-role">admin</span>
                 </div>
-                <button class="btn btn-ghost btn-sm" onclick="exportCSV()" id="btn-export">📥 CSV නිර්යාත</button>
+                <button class="btn btn-ghost btn-sm" onclick="exportCSV()" id="btn-export">📥 CSV</button>
+                <div style="display:inline-flex; gap: 4px;">
+                    <button class="btn btn-ghost btn-sm" onclick="exportBackup()" id="btn-backup"
+                        title="Download JSON Backup">💾 Backup</button>
+                    <label class="btn btn-ghost btn-sm" style="margin:0; cursor:pointer;" title="Restore from JSON">
+                        📂 Restore
+                        <input type="file" id="backup-file-input" accept=".json" style="display:none"
+                            onchange="restoreBackup(event)">
+                    </label>
+                </div>
                 <button class="btn btn-primary" onclick="openNewRecord()" id="btn-new-record">+ නව වාර්තාව</button>
                 <button class="logout-btn" onclick="Auth.logout()" id="btn-logout" style="display:none">🚪 ඉවත්
                     වන්න</button>
@@ -241,9 +252,9 @@
             <!-- Progress -->
             <div class="progress-bar-wrap">
                 <div class="progress-bar">
-                    <div class="progress-fill" id="progress-fill" style="width:12.5%"></div>
+                    <div class="progress-fill" id="progress-fill" style="width:11.1%"></div>
                 </div>
-                <div class="progress-text" id="progress-text">පියවර 1 / 8</div>
+                <div class="progress-text" id="progress-text">පියවර 1 / 9</div>
             </div>
 
             <!-- Member Tabs -->
@@ -261,6 +272,7 @@
                 <button class="tab-btn" id="tab-btn-5"><span class="tab-num">6</span>💰 ආදායම්</button>
                 <button class="tab-btn" id="tab-btn-6"><span class="tab-num">7</span>🏥 සෞඛ්‍ය</button>
                 <button class="tab-btn" id="tab-btn-7"><span class="tab-num">8</span>🏠 නිවාස</button>
+                <button class="tab-btn" id="tab-btn-8"><span class="tab-num">9</span>💉 සායන (MOH)</button>
             </div>
 
             <!-- ══ TAB 1: PERSONAL INFO ══ -->
@@ -1068,6 +1080,58 @@
                 </div>
             </div>
 
+            <!-- ══ TAB 9: MOH CLINICS ══ -->
+            <div class="tab-panel" id="tab-panel-8">
+                <div class="form-section">
+                    <div class="section-title">� ලබාගෙන ඇති එන්නත් (Vaccination Records)</div>
+                    <div class="form-group" style="margin-bottom: 20px;">
+                        <label class="form-label" style="margin-bottom: 12px;">කරුණාකර අදාළ කොටු තුළ හරි ලකුණ යොදන්න
+                            (ලබාගෙන ඇති එන්නත්):</label>
+                        <div class="checkbox-group">
+                            <label class="checkbox-item"><input type="checkbox" name="vaccines" value="BCG"> BCG</label>
+                            <label class="checkbox-item"><input type="checkbox" name="vaccines" value="Pentavalent">
+                                Pentavalent (1, 2, 3 මාත්‍රා)</label>
+                            <label class="checkbox-item"><input type="checkbox" name="vaccines" value="OPV"> OPV
+                                (පෝලියෝ)</label>
+                            <label class="checkbox-item"><input type="checkbox" name="vaccines" value="MMR"> MMR (සරම්ප,
+                                කම්මුල්ගාය, රුබෙල්ලා)</label>
+                            <label class="checkbox-item"><input type="checkbox" name="vaccines" value="JE"> JE (ජපන්
+                                මොළයේ උණ)</label>
+                            <label class="checkbox-item"><input type="checkbox" name="vaccines" value="HPV"> HPV (ගැහැණු
+                                දරුවන් සඳහා)</label>
+                            <label class="checkbox-item"><input type="checkbox" name="vaccines" value="aTd / DT"> aTd /
+                                DT (පිටගැස්ම සහ ඩිප්තීරියා)</label>
+                            <label class="checkbox-item"><input type="checkbox" name="vaccines" value="Tetanus Toxoid">
+                                Tetanus Toxoid (වැඩිහිටියන් සඳහා)</label>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-section">
+                    <div class="section-title">👩 සුවනාරි සායනය (Suwa Naari / Well Woman Clinic)</div>
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label class="form-label">සුවනාරි සායනයට සහභාගී වී තිබේද?</label>
+                            <div class="radio-group">
+                                <label class="radio-item"><input type="radio" name="attendedSuwanaari" value="yes">
+                                    ඔව්</label>
+                                <label class="radio-item"><input type="radio" name="attendedSuwanaari" value="no">
+                                    නැත</label>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label" for="suwanaariLastVisit">අවසාන වරට සහභාගී වූ දිනය/වර්ෂය</label>
+                            <input type="date" class="form-control" id="suwanaariLastVisit">
+                        </div>
+                        <div class="form-group form-full">
+                            <label class="form-label" for="suwanaariDetails">හඳුනාගත් සෞඛ්‍ය ගැටළු හෝ වාර්තා</label>
+                            <textarea class="form-control" id="suwanaariDetails" rows="2"
+                                placeholder="සායනයෙන් හඳුනාගත් තොරතුරු මෙහි ලියන්න..."></textarea>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <!-- Modal Footer -->
             <div class="modal-footer">
                 <div class="modal-footer-left">
@@ -1108,6 +1172,19 @@
         </div>
     </div>
 
+    <!-- ═════════ Printing & QR Helper Area (Hidden) ═════════ -->
+    <div id="qr-print-temp"
+        style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:white; color:black; z-index:9999; padding:40px; font-family: sans-serif; pointer-events:none;">
+        <div
+            style="text-align:center; border:2px solid #333; padding:20px; border-radius:15px; max-width:400px; margin:0 auto; background:white;">
+            <h2 id="print-name" style="margin-bottom:5px; color:black;">පවුලේ තොරතුරු</h2>
+            <p id="print-nic" style="color:#555; margin-bottom:20px;">NIC: —</p>
+            <div id="print-qr-container" style="display:inline-block; margin-bottom:20px;"></div>
+            <p style="color:black; font-size:12px; font-weight:bold; margin:5px 0;">Ahaspokuna South Family Database</p>
+            <p style="color:#666; font-size:10px;">මෙම කේතය ස්කෑන් කිරීමෙන් සම්පූර්ණ විස්තර ලබාගත හැක.</p>
+        </div>
+    </div>
+
     <!-- ═══════════════════════════════════════ CONFIRM DIALOG ══════════════════════════════════ -->
     <div class="confirm-dialog" id="confirm-dialog">
         <div class="confirm-box">
@@ -1123,10 +1200,6 @@
 
     <!-- ═══════════════════════════════════════ TOAST ══════════════════════════════════════════ -->
     <div class="toast-container" id="toast-container"></div>
-
-    <!-- Firebase compat SDK (v8-style globals — works without ES modules) -->
-    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 
     <script src="db.js"></script>
     <script src="app.js"></script>

@@ -1680,3 +1680,25 @@ textarea.form-control {
 .admin-tab-panel.active {
     display: block;
 }
+
+/* === Print Specific Styles === */
+@media print {
+    body * {
+        visibility: hidden;
+    }
+    #qr-print-temp, #qr-print-temp * {
+        visibility: visible;
+    }
+    #qr-print-temp {
+        display: block !important;
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 100%;
+        background: white !important;
+        color: black !important;
+    }
+    .app-header, .app-main, .modal-overlay, #auth-overlay {
+        display: none !important;
+    }
+}
