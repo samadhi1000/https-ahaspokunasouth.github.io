@@ -1,0 +1,1301 @@
+<!DOCTYPE html>
+<html lang="si">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>අහස්පොකුණ දකුණ - පවුල් දත්ත කළමනාකරණ පද්ධතිය</title>
+    <meta name="description" content="අහස්පොකුණ දකුණ ග්‍රාම නිලධාරී වසමේ පවුල් දත්ත ඩිජිටල්කරණ පද්ධතිය">
+    <!-- Firebase SDKs -->
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+    <link rel="stylesheet" href="style.css">
+    <!-- QR Code Library -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+</head>
+
+<body>
+
+    <!-- ═══════════════════════════════════════ HEADER ══════════════════════════════════════════ -->
+    <header class="app-header">
+        <div class="header-inner">
+            <div class="header-brand">
+                <div class="header-logo">🏛️</div>
+                <div class="header-title">
+                    <h1>අහස්පොකුණ දකුණ - පවුල් දත්ත කළමනාකරණ පද්ධතිය</h1>
+                    <p>Ahaspokuna South Grama Niladhari Division · Family Data Management System 2025</p>
+                </div>
+            </div>
+            <div class="header-actions">
+                <div class="user-badge" id="user-badge" style="display:none">
+                    <span id="badge-username">👤 පරිශීලකයා</span>
+                    <span class="role-tag" id="badge-role">admin</span>
+                </div>
+                <button class="btn btn-ghost btn-sm" onclick="exportCSV()" id="btn-export">📥 CSV</button>
+                <div style="display:inline-flex; gap: 4px;">
+                    <button class="btn btn-ghost btn-sm" onclick="exportBackup()" id="btn-backup"
+                        title="Download JSON Backup">💾 Backup</button>
+                    <label class="btn btn-ghost btn-sm" style="margin:0; cursor:pointer;" title="Restore from JSON">
+                        📂 Restore
+                        <input type="file" id="backup-file-input" accept=".json" style="display:none"
+                            onchange="restoreBackup(event)">
+                    </label>
+                </div>
+                <button class="btn btn-primary" onclick="openNewRecord()" id="btn-new-record">+ නව වාර්තාව</button>
+                <button class="logout-btn" onclick="Auth.logout()" id="btn-logout" style="display:none">🚪 ඉවත්
+                    වන්න</button>
+            </div>
+        </div>
+    </header>
+
+    <!-- ═══════════════════════════════════════ MAIN ═══════════════════════════════════════════ -->
+    <main class="app-main">
+
+        <!-- Dashboard -->
+        <div class="dashboard-grid">
+            <div class="stat-card">
+                <div class="stat-icon gold">🏠</div>
+                <div>
+                    <div class="stat-value" id="stat-families">0</div>
+                    <div class="stat-label">පවුල් සංඛ්‍යාව</div>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon blue">👨‍👩‍👧‍👦</div>
+                <div>
+                    <div class="stat-value" id="stat-members">0</div>
+                    <div class="stat-label">මුළු සාමාජිකයන්</div>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon green">🤝</div>
+                <div>
+                    <div class="stat-value" id="stat-aid">0</div>
+                    <div class="stat-label">රාජ්‍ය ආධාර ලාභීන්</div>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon orange">📋</div>
+                <div>
+                    <div class="stat-value text-sinhala" style="font-size:18px;margin-top:4px">2025</div>
+                    <div class="stat-label">ජනගණනය වසර</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ══ ADMIN PANEL (admin only) ══ -->
+        <div class="admin-panel" id="admin-panel" style="display:none">
+            <div class="admin-panel-header">
+                <div class="admin-panel-title">👑 පරිපාලක පුවරුව – Admin Panel</div>
+                <button class="btn btn-ghost btn-sm" onclick="loadAdminPanel()">🔄 නැවුම්</button>
+            </div>
+            <div class="admin-panel-body">
+                <!-- Admin sub-tabs -->
+                <div class="admin-tabs">
+                    <button class="admin-tab-btn active" onclick="switchAdminTab('users',this)">👥 පරිශීලකයන්</button>
+                    <button class="admin-tab-btn" onclick="switchAdminTab('log',this)">📋 ක්‍රියාකාරකම් ලොගය</button>
+                    <button class="admin-tab-btn" onclick="switchAdminTab('password',this)">🔑 මගේ මුරපදය</button>
+                </div>
+
+                <!-- Users Tab -->
+                <div class="admin-tab-panel active" id="admin-tab-users">
+                    <div class="records-table-wrap">
+                        <table class="users-table">
+                            <thead>
+                                <tr>
+                                    <th>පරිශීලක නාමය</th>
+                                    <th>භූමිකාව</th>
+                                    <th>ලියාපදිංචි දිනය</th>
+                                    <th>ක්‍රියා</th>
+                                </tr>
+                            </thead>
+                            <tbody id="users-table-body">
+                                <tr>
+                                    <td colspan="4" style="text-align:center;padding:20px;color:var(--text-muted)">පූරණය
+                                        වෙමින්...</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <!-- Add User Form -->
+                    <div style="margin-top:16px">
+                        <div class="section-title">➕ නව පරිශීලකයෙකු එකතු කරන්න</div>
+                        <div class="add-user-form">
+                            <div class="form-group">
+                                <label class="form-label">පරිශීලක නාමය</label>
+                                <input type="text" class="form-control" id="new-username" placeholder="username">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">භූමිකාව</label>
+                                <select class="form-control" id="new-role">
+                                    <option value="operator">Operator (දත්ත ඇතුළත් කිරීම)</option>
+                                    <option value="admin">Admin (පරිපාලක)</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">මූලික මුරපදය</label>
+                                <input type="password" class="form-control" id="new-password" placeholder="මුරපදය">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">මුරපදය තහවුරු කරන්න</label>
+                                <input type="password" class="form-control" id="new-password-confirm"
+                                    placeholder="නැවත ඇතුළු කරන්න">
+                            </div>
+                            <div class="form-group" style="align-self:end">
+                                <button class="btn btn-primary" onclick="addUser()">➕ එකතු කරන්න</button>
+                            </div>
+                        </div>
+                        <div id="add-user-error" class="auth-error-msg" style="margin-top:10px"></div>
+                    </div>
+                </div>
+
+                <!-- Activity Log Tab -->
+                <div class="admin-tab-panel" id="admin-tab-log">
+                    <div class="records-table-wrap" style="max-height:400px;overflow-y:auto">
+                        <table class="log-table">
+                            <thead>
+                                <tr>
+                                    <th>දිනය / වේලාව</th>
+                                    <th>පරිශීලකයා</th>
+                                    <th>ක්‍රියාව</th>
+                                    <th>විස්තරය</th>
+                                </tr>
+                            </thead>
+                            <tbody id="log-table-body">
+                                <tr>
+                                    <td colspan="4" style="text-align:center;padding:20px;color:var(--text-muted)">
+                                        ක්‍රියාකාරකම් නොමැත</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Change Password Tab -->
+                <div class="admin-tab-panel" id="admin-tab-password">
+                    <div style="max-width:400px">
+                        <div class="form-group" style="margin-bottom:14px">
+                            <label class="form-label">වර්තමාන මුරපදය</label>
+                            <input type="password" class="form-control" id="cp-current" placeholder="දැනට ඇති මුරපදය">
+                        </div>
+                        <div class="form-group" style="margin-bottom:14px">
+                            <label class="form-label">නව මුරපදය</label>
+                            <input type="password" class="form-control" id="cp-new"
+                                placeholder="නව මුරපදය (අවම අකුරු 4)">
+                        </div>
+                        <div class="form-group" style="margin-bottom:14px">
+                            <label class="form-label">නව මුරපදය තහවුරු</label>
+                            <input type="password" class="form-control" id="cp-confirm" placeholder="නැවත ඇතුළු කරන්න">
+                        </div>
+                        <div id="cp-error" class="auth-error-msg" style="margin-bottom:12px"></div>
+                        <button class="btn btn-primary" onclick="changeMyPassword()">🔑 මුරපදය වෙනස් කරන්න</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Records Panel -->
+        <div class="panel">
+            <div class="panel-header">
+                <div class="panel-title"><span class="icon">📋</span> ලියාපදිංචි පවුල් - Family Records</div>
+                <div class="search-bar">
+                    <div class="search-input-wrap">
+                        <span class="search-icon">🔍</span>
+                        <input type="text" class="search-input" id="search-input"
+                            placeholder="නම, හැඳුනුම්පත හෝ ලිපිනය සොයන්න...">
+                    </div>
+                    <button class="btn btn-secondary btn-sm" onclick="loadRecords()">නැවුම් කරන්න</button>
+                </div>
+            </div>
+            <div class="panel-body" style="padding:0">
+                <div class="records-table-wrap">
+                    <table class="records-table">
+                        <thead>
+                            <tr>
+                                <th>සම්පූර්ණ නම</th>
+                                <th>හැඳු. අංකය</th>
+                                <th>ලිපිනය</th>
+                                <th style="text-align:center">සාමාජිකයන්</th>
+                                <th style="text-align:center">📍 ස්ථානය</th>
+                                <th style="text-align:center">ආධාර</th>
+                                <th style="text-align:center">ලියාපදිංචි දිනය</th>
+                                <th>ක්‍රියා</th>
+                            </tr>
+                        </thead>
+                        <tbody id="records-body">
+                            <tr>
+                                <td colspan="7">
+                                    <div class="empty-state">
+                                        <div class="empty-icon">📂</div>
+                                        <p>දත්ත පූරණය වෙමින් පවතී...</p>
+                                    </div>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- ═══════════════════════════════════════ ENTRY MODAL ════════════════════════════════════ -->
+    <div class="modal-overlay" id="modal-overlay">
+        <div class="modal-container">
+
+            <!-- Modal Header -->
+            <div class="modal-header">
+                <div>
+                    <div class="modal-title" id="modal-title">නව පවුල් වාර්තාව</div>
+                    <div class="modal-subtitle">සියලු * ලකුණු සහිත ක්ෂේත්‍ර අනිවාර්ය ය</div>
+                </div>
+                <button class="modal-close" onclick="closeModal()" id="modal-close-btn">✕</button>
+            </div>
+
+            <!-- Progress -->
+            <div class="progress-bar-wrap">
+                <div class="progress-bar">
+                    <div class="progress-fill" id="progress-fill" style="width:11.1%"></div>
+                </div>
+                <div class="progress-text" id="progress-text">පියවර 1 / 9</div>
+            </div>
+
+            <!-- Member Tabs -->
+            <div style="padding:0 20px">
+                <div class="member-tabs" id="member-tabs"></div>
+            </div>
+
+            <!-- Tab Navigation -->
+            <div class="tab-nav">
+                <button class="tab-btn active" id="tab-btn-0"><span class="tab-num">1</span>👤 පුද්ගල</button>
+                <button class="tab-btn" id="tab-btn-1"><span class="tab-num">2</span>🎓 අධ්‍යාපන</button>
+                <button class="tab-btn" id="tab-btn-2"><span class="tab-num">3</span>💼 ආර්ථික</button>
+                <button class="tab-btn" id="tab-btn-3"><span class="tab-num">4</span>🏡 දේපල</button>
+                <button class="tab-btn" id="tab-btn-4"><span class="tab-num">5</span>🤝 රාජ්‍ය ආධාර</button>
+                <button class="tab-btn" id="tab-btn-5"><span class="tab-num">6</span>💰 ආදායම්</button>
+                <button class="tab-btn" id="tab-btn-6"><span class="tab-num">7</span>🏥 සෞඛ්‍ය</button>
+                <button class="tab-btn" id="tab-btn-7"><span class="tab-num">8</span>🏠 නිවාස</button>
+                <button class="tab-btn" id="tab-btn-8"><span class="tab-num">9</span>💉 සායන (MOH)</button>
+            </div>
+
+            <!-- ══ TAB 1: PERSONAL INFO ══ -->
+            <div class="tab-panel active" id="tab-panel-0">
+                <div class="form-section">
+                    <div class="section-title">👤 පුද්ගල හඳුනාගැනීමේ තොරතුරු</div>
+                    <div class="form-grid">
+                        <div class="form-group form-full">
+                            <label class="form-label" for="fullName">සම්පූර්ණ නම <span
+                                    class="required-star">*</span></label>
+                            <input type="text" class="form-control" id="fullName" name="fullName"
+                                placeholder="සම්පූර්ණ නම ඇතුළත් කරන්න">
+                            <span class="field-error" id="fullName-error">අනිවාර්ය ක්ෂේත්‍රය</span>
+                        </div>
+                        <div class="form-group form-full">
+                            <label class="form-label" for="address">ලිපිනය <span class="required-star">*</span></label>
+                            <textarea class="form-control" id="address" name="address" rows="2"
+                                placeholder="සම්පූර්ණ ලිපිනය ඇතුළත් කරන්න"></textarea>
+                            <span class="field-error" id="address-error">අනිවාර්ය ක්ෂේත්‍රය</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-section">
+                    <div class="section-title">📞 සම්බන්ධතා තොරතුරු</div>
+                    <div class="form-grid form-grid-3">
+                        <div class="form-group">
+                            <label class="form-label" for="phoneMobile">ජංගම දුරකථනය</label>
+                            <input type="tel" class="form-control" id="phoneMobile" placeholder="07XXXXXXXX">
+                            <span class="field-error" id="phoneMobile-error"></span>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label" for="phoneOffice">කාර්යාල දුරකථනය</label>
+                            <input type="tel" class="form-control" id="phoneOffice" placeholder="0XXXXXXXXX">
+                            <span class="field-error" id="phoneOffice-error"></span>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label" for="phoneWhatsapp">වට්ස් ඇප්</label>
+                            <input type="tel" class="form-control" id="phoneWhatsapp" placeholder="07XXXXXXXX">
+                            <span class="field-error" id="phoneWhatsapp-error"></span>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label" for="email">ඊ මේල්</label>
+                            <input type="email" class="form-control" id="email" placeholder="example@mail.com">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label" for="tin">TIN අංකය</label>
+                            <input type="text" class="form-control" id="tin" placeholder="TIN Number">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label" for="nic">හැඳුනුම්පත් අංකය <span
+                                    class="required-star">*</span></label>
+                            <input type="text" class="form-control" id="nic" placeholder="XXXXXXXXX V  හෝ  XXXXXXXXXXXX"
+                                maxlength="12">
+                            <span class="field-error" id="nic-error">වලංගු නොවන හැඳුනුම්පත් අංකය</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-section">
+                    <div class="section-title">📋 පද්ධති විස්තර</div>
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label class="form-label">ස්ත්‍රී / පුරුෂ</label>
+                            <div class="radio-group">
+                                <label class="radio-item"><input type="radio" name="gender" value="male"> පිරිමි</label>
+                                <label class="radio-item"><input type="radio" name="gender" value="female">
+                                    ගැහැණු</label>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label" for="dob">උපන් දිනය</label>
+                            <input type="date" class="form-control" id="dob">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label" for="religion">ආගම</label>
+                            <select class="form-control" id="religion">
+                                <option value="">-- තෝරන්න --</option>
+                                <option value="buddhist">බෞද්ධ</option>
+                                <option value="hindu">හින්දු</option>
+                                <option value="muslim">ඉස්ලාම්</option>
+                                <option value="catholic">කතෝලික</option>
+                                <option value="christian">ක්‍රිස්තියානි</option>
+                                <option value="other">වෙනත්</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label" for="ethnicity">ජාතිය</label>
+                            <select class="form-control" id="ethnicity">
+                                <option value="">-- තෝරන්න --</option>
+                                <option value="sinhala">සිංහල</option>
+                                <option value="tamil">දෙමළ</option>
+                                <option value="muslim">මුස්ලිම්</option>
+                                <option value="burgher">බර්ගර්</option>
+                                <option value="other">වෙනත්</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">විවාහ තත්ත්වය</label>
+                            <div class="radio-group">
+                                <label class="radio-item"><input type="radio" name="maritalStatus" value="married">
+                                    විවාහකයා</label>
+                                <label class="radio-item"><input type="radio" name="maritalStatus" value="single">
+                                    අවිවාහකයා</label>
+                                <label class="radio-item"><input type="radio" name="maritalStatus" value="divorced">
+                                    දික්කසාද</label>
+                                <label class="radio-item"><input type="radio" name="maritalStatus" value="widow">
+                                    වැන්දඹු</label>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">පුරවැසිභාවය</label>
+                            <div class="radio-group">
+                                <label class="radio-item"><input type="radio" name="citizenship" value="sl"> ශ්‍රී
+                                    ලාංකික</label>
+                                <label class="radio-item"><input type="radio" name="citizenship" value="dual">
+                                    ද්විත්ව</label>
+                                <label class="radio-item"><input type="radio" name="citizenship" value="foreign">
+                                    විදේශීය</label>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">පදිංචි කාලය (ආරම්භය)</label>
+                            <div class="radio-group">
+                                <label class="radio-item"><input type="radio" name="residencyType" value="birth">
+                                    උපතින්</label>
+                                <label class="radio-item"><input type="radio" name="residencyType" value="marriage">
+                                    විවාහමයින්</label>
+                                <label class="radio-item"><input type="radio" name="residencyType" value="transfer">赴任 /
+                                    මාරු</label>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label" for="residencyYears">පදිංචි වසර ගණන</label>
+                            <input type="number" class="form-control" id="residencyYears" placeholder="වසර" min="0"
+                                max="120">
+                            <span class="field-hint">උපන් දිනය සහ වයස සමඟ සත්‍යාපන කෙරේ</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- LOCATION SECTION -->
+                <div class="form-section">
+                    <div class="section-title">📍 නිවාස ස්ථාන පිහිටීම (Location)</div>
+
+                    <!-- Google Maps URL paste -->
+                    <div class="form-group" style="margin-bottom:16px">
+                        <label class="form-label" for="mapsUrl">
+                            🔗 Google Maps සබැඳිය අලවන්න
+                            <span class="field-hint" style="margin-left:8px;font-weight:400">(paste link → lat/lng
+                                ස්වයංක්‍රීයව ලැබේ)</span>
+                        </label>
+                        <div style="display:flex;gap:10px;align-items:center">
+                            <input type="url" class="form-control" id="mapsUrl"
+                                placeholder="https://maps.app.goo.gl/... හෝ https://www.google.com/maps/@...">
+                            <button type="button" class="btn btn-secondary btn-sm" onclick="parseMapsUrl()"
+                                style="white-space:nowrap;flex-shrink:0">
+                                🔍 ස්ථානය ලබා ගන්න
+                            </button>
+                        </div>
+                        <span class="field-hint" style="margin-top:4px;display:block">
+                            Google Maps → Share → Copy link → මෙතන Paste කරන්න
+                        </span>
+                    </div>
+
+                    <div class="form-grid form-grid-3">
+                        <!-- Latitude -->
+                        <div class="form-group">
+                            <label class="form-label" for="latitude">Latitude (අකුණු රේඛාංශ)</label>
+                            <input type="number" class="form-control" id="latitude" placeholder="ex: 6.0535"
+                                step="0.000001" min="-90" max="90" oninput="updateMapLink()">
+                            <span class="field-error" id="latitude-error">වලංගු Latitude අංකයක් ඇතුළු කරන්න</span>
+                        </div>
+                        <!-- Longitude -->
+                        <div class="form-group">
+                            <label class="form-label" for="longitude">Longitude (දේශ රේඛාංශ)</label>
+                            <input type="number" class="form-control" id="longitude" placeholder="ex: 80.2209"
+                                step="0.000001" min="-180" max="180" oninput="updateMapLink()">
+                            <span class="field-error" id="longitude-error">වලංගු Longitude අංකයක් ඇතුළු කරන්න</span>
+                        </div>
+                        <!-- GPS Accuracy -->
+                        <div class="form-group">
+                            <label class="form-label" for="gpsAccuracy">GPS නිරවද්‍යතාව (මීටර්)</label>
+                            <input type="text" class="form-control" id="gpsAccuracy" readonly
+                                placeholder="GPS ලබාගත් පසු දිස් වේ"
+                                style="background:rgba(255,255,255,0.03);opacity:0.7">
+                        </div>
+                    </div>
+
+                    <!-- Action Buttons Row -->
+                    <div style="display:flex;gap:12px;flex-wrap:wrap;margin-top:14px;align-items:center">
+                        <!-- GPS Button -->
+                        <button type="button" class="btn btn-success" onclick="getGPSLocation()" id="gps-btn">
+                            📡 දැනට සිටින ස්ථානය (GPS)
+                        </button>
+                        <!-- View on Map Link -->
+                        <a id="map-view-link" href="#" target="_blank" rel="noopener" class="btn btn-secondary"
+                            style="display:none">
+                            🗺️ Google Maps හි බලන්න
+                        </a>
+                        <!-- Copy Coords -->
+                        <button type="button" class="btn btn-ghost btn-sm" onclick="copyCoords()" id="copy-coords-btn"
+                            style="display:none">
+                            📋 Coordinates පිටපත් කරන්න
+                        </button>
+                    </div>
+
+                    <!-- Status message -->
+                    <div id="location-status"
+                        style="margin-top:12px;font-size:12px;font-family:'Noto Sans Sinhala',sans-serif;min-height:20px">
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- ══ TAB 2: EDUCATION ══ -->
+            <div class="tab-panel" id="tab-panel-1">
+                <div class="form-section">
+                    <div class="section-title">🎓 අධ්‍යාපන තොරතුරු</div>
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label class="form-label" for="eduLevel">සමත් වී ඇති ඉහළම අධ්‍යාපන මට්ටම</label>
+                            <select class="form-control" id="eduLevel">
+                                <option value="">-- තෝරන්න --</option>
+                                <option value="none">පාසල් නොගිය</option>
+                                <option value="preschool">පෙර පාසල්</option>
+                                <option value="grade1-5">ශ්‍රේණිය 1 - 5</option>
+                                <option value="grade5-10">ශ්‍රේණිය 5 - 10</option>
+                                <option value="ol">සාමාන්‍ය පෙළ (O/L)</option>
+                                <option value="al">උසස් පෙළ (A/L)</option>
+                                <option value="diploma">ඩිප්ලෝමාව</option>
+                                <option value="degree">උපාධිය</option>
+                                <option value="postgrad">පශ්චාද් උපාධිය</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">වර්තමාන අධ්‍යාපන තත්ත්වය</label>
+                            <div class="radio-group">
+                                <label class="radio-item"><input type="radio" name="eduStatus" value="studying"> දැනට
+                                    ලබයි</label>
+                                <label class="radio-item"><input type="radio" name="eduStatus" value="finished">
+                                    අවසන්</label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="form-section" id="edu-institution-group">
+                    <div class="section-title">🏫 අධ්‍යාපන ආයතන තොරතුරු</div>
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label class="form-label">ආයතනය ස්වාභාවය</label>
+                            <div class="radio-group">
+                                <label class="radio-item"><input type="radio" name="eduInstitutionType" value="local">
+                                    දේශීය</label>
+                                <label class="radio-item"><input type="radio" name="eduInstitutionType" value="foreign">
+                                    විදේශීය</label>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label" for="eduInstitution">ආයතනය නම</label>
+                            <input type="text" class="form-control" id="eduInstitution"
+                                placeholder="ආයතනයේ නම ඇතුළත් කරන්න">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ══ TAB 3: ECONOMIC & EMPLOYMENT ══ -->
+            <div class="tab-panel" id="tab-panel-2">
+                <div class="form-section">
+                    <div class="section-title">💼 රැකියා තොරතුරු</div>
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label class="form-label">රැකියා ක්ෂේත්‍රය</label>
+                            <div class="radio-group">
+                                <label class="radio-item"><input type="radio" name="employmentType" value="government">
+                                    රජයේ</label>
+                                <label class="radio-item"><input type="radio" name="employmentType" value="private">
+                                    පෞද්ගලික</label>
+                                <label class="radio-item"><input type="radio" name="employmentType" value="semi"> අර්ධ
+                                    රාජ්‍ය</label>
+                                <label class="radio-item"><input type="radio" name="employmentType" value="self"> ස්වයං
+                                    රැකියා</label>
+                                <label class="radio-item"><input type="radio" name="employmentType" value="business">
+                                    ව්‍යාපාරය</label>
+                                <label class="radio-item"><input type="radio" name="employmentType" value="foreign">
+                                    විදේශ රැකියා</label>
+                                <label class="radio-item"><input type="radio" name="employmentType" value="none">
+                                    රැකියාවක් නැත</label>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label" for="employmentNature">රැකියාවේ ස්වාභාවය</label>
+                            <input type="text" class="form-control" id="employmentNature"
+                                placeholder="රැකියාවේ ස්වාභාවය">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label" for="employmentLocation">ස්ථානය</label>
+                            <input type="text" class="form-control" id="employmentLocation" placeholder="රැකියා ස්ථානය">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label" for="employmentOrganization">ආයතනය</label>
+                            <input type="text" class="form-control" id="employmentOrganization" placeholder="ආයතනයේ නම">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label" for="employmentPosition">තනතුර</label>
+                            <input type="text" class="form-control" id="employmentPosition"
+                                placeholder="රස්සාවේ/ තනතුරේ නම">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label" for="employmentSalary">වැටුප් / ලාභය (රු.)</label>
+                            <input type="number" class="form-control" id="employmentSalary" placeholder="0.00"
+                                step="0.01" min="0">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label" for="foreignCountry">විදේශ රැකියා නම් රට</label>
+                            <input type="text" class="form-control" id="foreignCountry" placeholder="රටේ නම">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-section">
+                    <div class="section-title">🏪 ව්‍යාපාර තොරතුරු</div>
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label class="form-label">ව්‍යාපාරය ලියාපදිංචිද?</label>
+                            <div class="radio-group">
+                                <label class="radio-item"><input type="radio" name="businessRegistered" value="yes">
+                                    ලියාපදිංචිව ඇත</label>
+                                <label class="radio-item"><input type="radio" name="businessRegistered" value="no">
+                                    ලියාපදිංචි නැත</label>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label" for="businessRegNo">ලියාපදිංචි අංකය</label>
+                            <input type="text" class="form-control" id="businessRegNo"
+                                placeholder="ව්‍යාපාර ලියාපදිංචි අංකය">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label" for="businessEmployees">සේවකයන් ගණන</label>
+                            <input type="number" class="form-control" id="businessEmployees" placeholder="0" min="0">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-section">
+                    <div class="section-title">💳 ණය සහ උකස් තොරතුරු</div>
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label class="form-label" for="loanDetails">ලබාගෙන ඇති ණය විස්තර</label>
+                            <textarea class="form-control" id="loanDetails"
+                                placeholder="ණය ආයතනය, මුදල, හේතුව - ලෝකල් ලොව..."></textarea>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label" for="mortgageDetails">උකස් කර ඇති භාණ්ඩ</label>
+                            <textarea class="form-control" id="mortgageDetails"
+                                placeholder="උකස් කළ දේ, ප්‍රමාණය..."></textarea>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ══ TAB 4: ASSETS & PROPERTY ══ -->
+            <div class="tab-panel" id="tab-panel-3">
+
+                <div class="form-section">
+                    <div class="section-title">🌾 ඉඩම් හිමිකම් (Land Ownership)</div>
+                    <div class="grid-table-wrap">
+                        <table class="grid-table">
+                            <thead>
+                                <tr>
+                                    <th>ඉඩම් වර්ගය</th>
+                                    <th>ලේඛන අංකය</th>
+                                    <th>ප්‍රමාණය</th>
+                                    <th>ඒකකය</th>
+                                    <th>භාවිත ආකාරය</th>
+                                    <th></th>
+                                </tr>
+                            </thead>
+                            <tbody id="land-rows"></tbody>
+                        </table>
+                    </div>
+                    <button type="button" class="btn btn-ghost btn-sm add-row-btn" onclick="addLandRow()">+ ඉඩම් පේළියක්
+                        එකතු කරන්න</button>
+                </div>
+
+                <div class="form-section">
+                    <div class="section-title">🚗 චංචල දේපල - වාහන</div>
+                    <div class="grid-table-wrap">
+                        <table class="grid-table">
+                            <thead>
+                                <tr>
+                                    <th>වාහන වර්ගය</th>
+                                    <th>රෙජිස්ට්‍රේෂන් අංකය</th>
+                                    <th>අයිතිය</th>
+                                    <th></th>
+                                </tr>
+                            </thead>
+                            <tbody id="vehicle-rows"></tbody>
+                        </table>
+                    </div>
+                    <button type="button" class="btn btn-ghost btn-sm add-row-btn" onclick="addVehicleRow()">+ වාහනයක්
+                        එකතු කරන්න</button>
+                </div>
+
+                <div class="form-section">
+                    <div class="section-title">🌿 කෘෂිකර්ම - බෝග වගාව</div>
+                    <div class="form-group">
+                        <label class="form-label">බෝග වගාවල ස්වාභාවය</label>
+                        <div class="checkbox-group">
+                            <label class="checkbox-item"><input type="checkbox" name="cropNature" value="mixed"> මිශ්‍ර
+                                බෝග</label>
+                            <label class="checkbox-item"><input type="checkbox" name="cropNature" value="export"> සුළු
+                                අපනයන බෝග</label>
+                            <label class="checkbox-item"><input type="checkbox" name="cropNature" value="vegetable">
+                                එළවළු</label>
+                            <label class="checkbox-item"><input type="checkbox" name="cropNature" value="paddy">
+                                වී</label>
+                            <label class="checkbox-item"><input type="checkbox" name="cropNature" value="fruit">
+                                පලතුරු</label>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-section">
+                    <div class="section-title">🐄 සත්ව පාලනය</div>
+                    <div class="grid-table-wrap">
+                        <table class="grid-table">
+                            <thead>
+                                <tr>
+                                    <th>සතා ස්වාභාවය</th>
+                                    <th>ගැහැණු ප්‍රමාණය</th>
+                                    <th>පිරිමි ප්‍රමාණය</th>
+                                    <th></th>
+                                </tr>
+                            </thead>
+                            <tbody id="livestock-rows"></tbody>
+                        </table>
+                    </div>
+                    <button type="button" class="btn btn-ghost btn-sm add-row-btn" onclick="addLivestockRow()">+ සතෙකු
+                        එකතු කරන්න</button>
+                </div>
+
+                <div class="form-section">
+                    <div class="section-title">🔧 උපකරණ</div>
+                    <div class="form-group">
+                        <label class="form-label" for="equipment">උපකරණ විස්තර</label>
+                        <textarea class="form-control" id="equipment"
+                            placeholder="ගෙතිරිගු, ළිං, ජල පොම්පා, ජනක යන්ත්‍ර ආදිය..." rows="3"></textarea>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ══ TAB 5: STATE AID ══ -->
+            <div class="tab-panel" id="tab-panel-4">
+                <div class="form-section">
+                    <div class="section-title">🤝 රාජ්‍ය ආධාර සහ දීමනා</div>
+                    <div class="form-grid">
+
+                        <div class="form-group">
+                            <label class="form-label">
+                                <label class="checkbox-item" style="margin-bottom:6px">
+                                    <input type="checkbox" id="aid-aswasuma"> අස්වැසුම ආධාර
+                                </label>
+                            </label>
+                            <input type="number" class="form-control" id="aid-aswasuma-amt"
+                                placeholder="මාසික මුදල (රු.)" min="0" step="0.01">
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label">
+                                <label class="checkbox-item" style="margin-bottom:6px">
+                                    <input type="checkbox" id="aid-elders"> වැඩිහිටි දීමනා
+                                </label>
+                            </label>
+                            <input type="number" class="form-control" id="aid-elders-amt" placeholder="මාසික මුදල (රු.)"
+                                min="0" step="0.01">
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label">
+                                <label class="checkbox-item" style="margin-bottom:6px">
+                                    <input type="checkbox" id="aid-mahajanadara"> මහජනාදාර ආධාර
+                                </label>
+                            </label>
+                            <input type="number" class="form-control" id="aid-mahajanadara-amt"
+                                placeholder="මාසික මුදල (රු.)" min="0" step="0.01">
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label">
+                                <label class="checkbox-item" style="margin-bottom:6px">
+                                    <input type="checkbox" id="aid-mahapola"> මහාපොළ ශිෂ්‍යත්ව
+                                </label>
+                            </label>
+                            <input type="number" class="form-control" id="aid-mahapola-amt"
+                                placeholder="ශිෂ්‍යත්ව මුදල (රු.)" min="0" step="0.01">
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label">
+                                <label class="checkbox-item" style="margin-bottom:6px">
+                                    <input type="checkbox" id="aid-scholarship5"> 5 ශිෂ්‍යත්ව ආධාර
+                                </label>
+                            </label>
+                            <input type="number" class="form-control" id="aid-scholarship5-amt"
+                                placeholder="ආධාර මුදල (රු.)" min="0" step="0.01">
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label">
+                                <label class="checkbox-item" style="margin-bottom:6px">
+                                    <input type="checkbox" id="aid-medical"> රෝගාධාර
+                                </label>
+                            </label>
+                            <input type="number" class="form-control" id="aid-medical-amt" placeholder="ආධාර මුදල (රු.)"
+                                min="0" step="0.01">
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label">
+                                <label class="checkbox-item" style="margin-bottom:6px">
+                                    <input type="checkbox" id="aid-disability"> ආබාධිත දීමනා
+                                </label>
+                            </label>
+                            <input type="number" class="form-control" id="aid-disability-amt"
+                                placeholder="දීමනා මුදල (රු.)" min="0" step="0.01">
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+
+            <!-- ══ TAB 6: INCOME / EXPENDITURE ══ -->
+            <div class="tab-panel" id="tab-panel-5">
+                <div class="form-section">
+                    <div class="section-title">💰 ආදායමේ ස්වාභාවය (Monthly Income)</div>
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label class="form-label" for="inc-salary">වැටුප (රු.)</label>
+                            <input type="number" class="form-control" id="inc-salary" placeholder="0.00" min="0"
+                                step="0.01">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label" for="inc-profit">ලාභය (ව්‍යාපාර / ස්වයං රැකියා)</label>
+                            <input type="number" class="form-control" id="inc-profit" placeholder="0.00" min="0"
+                                step="0.01">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label" for="inc-garden">ගෙවතු වගා ආදායම (රු.)</label>
+                            <input type="number" class="form-control" id="inc-garden" placeholder="0.00" min="0"
+                                step="0.01">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label" for="inc-govt-aid">රජයෙන් ලැබෙන ආධාර (රු.)</label>
+                            <input type="number" class="form-control" id="inc-govt-aid" placeholder="0.00" min="0"
+                                step="0.01">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label" for="inc-other">වෙනත් දීමනා / ආදායම (රු.)</label>
+                            <input type="number" class="form-control" id="inc-other" placeholder="0.00" min="0"
+                                step="0.01">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label" for="inc-total">🔢 ආදායම් එකතුව (Auto)</label>
+                            <input type="number" class="form-control auto-calc" id="inc-total" readonly
+                                placeholder="ස්වයංක්‍රීයව ගණනය">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="divider"></div>
+
+                <div class="form-section">
+                    <div class="section-title">💸 වියදම් රටාව (Monthly Expenditure)</div>
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label class="form-label" for="exp-food">ආහාර (රු.)</label>
+                            <input type="number" class="form-control" id="exp-food" placeholder="0.00" min="0"
+                                step="0.01">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label" for="exp-transport">ගමනා ගමන (රු.)</label>
+                            <input type="number" class="form-control" id="exp-transport" placeholder="0.00" min="0"
+                                step="0.01">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label" for="exp-health">සෞඛ්‍ය (රු.)</label>
+                            <input type="number" class="form-control" id="exp-health" placeholder="0.00" min="0"
+                                step="0.01">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label" for="exp-education">අධ්‍යාපන (රු.)</label>
+                            <input type="number" class="form-control" id="exp-education" placeholder="0.00" min="0"
+                                step="0.01">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label" for="exp-loan">ණය / ලීසිං (රු.)</label>
+                            <input type="number" class="form-control" id="exp-loan" placeholder="0.00" min="0"
+                                step="0.01">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label" for="exp-savings">ඉතුරුම් (රු.)</label>
+                            <input type="number" class="form-control" id="exp-savings" placeholder="0.00" min="0"
+                                step="0.01">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label" for="exp-total">🔢 වියදම් එකතුව (Auto)</label>
+                            <input type="number" class="form-control auto-calc" id="exp-total" readonly
+                                placeholder="ස්වයංක්‍රීයව ගණනය">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ══ TAB 7: HEALTH ══ -->
+            <div class="tab-panel" id="tab-panel-6">
+                <div class="form-section">
+                    <div class="section-title">🏥 සෞඛ්‍ය තොරතුරු</div>
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label class="form-label">නිදන්ගත රෝගයකින් පෙළේද?</label>
+                            <div class="radio-group">
+                                <label class="radio-item"><input type="radio" name="chronicDisease" value="yes">
+                                    ඔව්</label>
+                                <label class="radio-item"><input type="radio" name="chronicDisease" value="no">
+                                    නැත</label>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">ප්‍රතිකාර ලබා ගනිද?</label>
+                            <div class="radio-group">
+                                <label class="radio-item"><input type="radio" name="chronicTreatment" value="yes">
+                                    ඔව්</label>
+                                <label class="radio-item"><input type="radio" name="chronicTreatment" value="no">
+                                    නැත</label>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label" for="otherDisease">රෝගයේ ස්වාභාවය / නම</label>
+                            <input type="text" class="form-control" id="otherDisease"
+                                placeholder="රෝගයේ නම හෝ ස්වාභාවය">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label" for="healthExpense">සෞඛ්‍ය සඳහා මාසිකව (රු.)</label>
+                            <input type="number" class="form-control" id="healthExpense" placeholder="0.00" min="0"
+                                step="0.01">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-section">
+                    <div class="section-title">♿ ආබාධිත තොරතුරු</div>
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label class="form-label">ආබාධිතද?</label>
+                            <div class="radio-group">
+                                <label class="radio-item"><input type="radio" name="disabled" value="yes"> ඔව්</label>
+                                <label class="radio-item"><input type="radio" name="disabled" value="no"> නැත</label>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label" for="disabilityType">ආබාධයේ ස්වාභාවය</label>
+                            <input type="text" class="form-control" id="disabilityType"
+                                placeholder="ශාරීරික / මානසික / දෘෂ්ටි...">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">ආබාධයේ හේතුව</label>
+                            <div class="radio-group">
+                                <label class="radio-item"><input type="radio" name="disabilityCause" value="birth">
+                                    උපතින්</label>
+                                <label class="radio-item"><input type="radio" name="disabilityCause" value="accident">
+                                    හදිසි අනතුරකින්</label>
+                                <label class="radio-item"><input type="radio" name="disabilityCause" value="disease">
+                                    රෝගයකින්</label>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">අඩු බර දරු උපත් ඇතිද?</label>
+                            <div class="radio-group">
+                                <label class="radio-item"><input type="radio" name="lowBirthWeight" value="yes">
+                                    ඔව්</label>
+                                <label class="radio-item"><input type="radio" name="lowBirthWeight" value="no">
+                                    නැත</label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ══ TAB 8: HOUSING ══ -->
+            <div class="tab-panel" id="tab-panel-7">
+                <div class="form-section">
+                    <div class="section-title">🏠 නිවාස ව්‍යුහ තොරතුරු</div>
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label class="form-label">වහල ස්වාභාවය</label>
+                            <div class="radio-group" style="flex-wrap:wrap">
+                                <label class="radio-item"><input type="radio" name="roofType" value="tiles"> උළු</label>
+                                <label class="radio-item"><input type="radio" name="roofType" value="asbestos">
+                                    ඇස්බැස්ටෝස්</label>
+                                <label class="radio-item"><input type="radio" name="roofType" value="tin"> තිරස්
+                                    තහඩු</label>
+                                <label class="radio-item"><input type="radio" name="roofType" value="leaves"> පොල්
+                                    අතු</label>
+                                <label class="radio-item"><input type="radio" name="roofType" value="boards">
+                                    ලෑලි</label>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">ගස් බිම ස්වාභාවය</label>
+                            <div class="radio-group" style="flex-wrap:wrap">
+                                <label class="radio-item"><input type="radio" name="floorType" value="cement">
+                                    සිමෙන්ති</label>
+                                <label class="radio-item"><input type="radio" name="floorType" value="terrazzo">
+                                    ටෙරාසෝ</label>
+                                <label class="radio-item"><input type="radio" name="floorType" value="tiles"> පිඟන්
+                                    ගෙඩොල්</label>
+                                <label class="radio-item"><input type="radio" name="floorType" value="wood"> ලී</label>
+                                <label class="radio-item"><input type="radio" name="floorType" value="mud"> මැටි</label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-section">
+                    <div class="section-title">💧 ජලය සහ ඉන්ධන</div>
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label class="form-label">බීමට ජලය ලබා ගන්නේ</label>
+                            <div class="radio-group" style="flex-wrap:wrap">
+                                <label class="radio-item"><input type="radio" name="waterSource" value="own-safe-well">
+                                    තමාගේ ආරක්ෂිත ළිඳ</label>
+                                <label class="radio-item"><input type="radio" name="waterSource"
+                                        value="own-unsafe-well"> තමාගේ අනාරක්ෂිත ළිඳ</label>
+                                <label class="radio-item"><input type="radio" name="waterSource"
+                                        value="other-safe-well"> අනෙකාගේ ආරක්ෂිත ළිඳ</label>
+                                <label class="radio-item"><input type="radio" name="waterSource"
+                                        value="other-unsafe-well"> අනෙකාගේ අනාරක්ෂිත ළිඳ</label>
+                                <label class="radio-item"><input type="radio" name="waterSource" value="pipe"> නළ
+                                    ජලය</label>
+                                <label class="radio-item"><input type="radio" name="waterSource" value="other">
+                                    වෙනත්</label>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">ඉන්ධන ස්වාභාවය</label>
+                            <div class="checkbox-group" style="flex-wrap:wrap">
+                                <label class="checkbox-item"><input type="checkbox" name="fuelType" value="firewood">
+                                    දර</label>
+                                <label class="checkbox-item"><input type="checkbox" name="fuelType" value="gas">
+                                    ගෑස්</label>
+                                <label class="checkbox-item"><input type="checkbox" name="fuelType" value="electric">
+                                    විදුලිය</label>
+                                <label class="checkbox-item"><input type="checkbox" name="fuelType" value="kerosene">
+                                    භූමිතෙල්</label>
+                                <label class="checkbox-item"><input type="checkbox" name="fuelType" value="other">
+                                    වෙනත්</label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-section">
+                    <div class="section-title">⚡ සේවා පහසුකම්</div>
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label class="form-label">ස්ථාවර දුරකථනය</label>
+                            <div class="radio-group">
+                                <label class="radio-item"><input type="radio" name="hasLandPhone" value="yes">
+                                    ඇත</label>
+                                <label class="radio-item"><input type="radio" name="hasLandPhone" value="no">
+                                    නැත</label>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">අන්තර්ජාල පහසුකම්</label>
+                            <div class="radio-group">
+                                <label class="radio-item"><input type="radio" name="hasInternet" value="yes"> ඇත</label>
+                                <label class="radio-item"><input type="radio" name="hasInternet" value="no"> නැත</label>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">පරිගණකය</label>
+                            <div class="radio-group">
+                                <label class="radio-item"><input type="radio" name="hasComputer" value="yes"> ඇත</label>
+                                <label class="radio-item"><input type="radio" name="hasComputer" value="no"> නැත</label>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">විදුලිය සම්බන්ධිතද?</label>
+                            <div class="radio-group">
+                                <label class="radio-item"><input type="radio" name="hasElectricity" value="yes">
+                                    ඔව්</label>
+                                <label class="radio-item"><input type="radio" name="hasElectricity" value="no">
+                                    නැත</label>
+                            </div>
+                        </div>
+                        <div class="form-group form-full">
+                            <label class="form-label" for="unsafeNature">අනාරක්ෂිතතාවයේ ස්වාභාවය (ඇත නම්)</label>
+                            <textarea class="form-control" id="unsafeNature" rows="2"
+                                placeholder="නිවාසය / ස්ථානය පිළිබඳ ඕනෑම අනාරක්ෂිත බවක් ඇත්නම් ලියන්න..."></textarea>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ══ TAB 9: MOH CLINICS ══ -->
+            <div class="tab-panel" id="tab-panel-8">
+                <div class="form-section">
+                    <div class="section-title">� ලබාගෙන ඇති එන්නත් (Vaccination Records)</div>
+                    <div class="form-group" style="margin-bottom: 20px;">
+                        <label class="form-label" style="margin-bottom: 12px;">කරුණාකර අදාළ කොටු තුළ හරි ලකුණ යොදන්න
+                            (ලබාගෙන ඇති එන්නත්):</label>
+                        <div class="checkbox-group">
+                            <label class="checkbox-item"><input type="checkbox" name="vaccines" value="BCG"> BCG</label>
+                            <label class="checkbox-item"><input type="checkbox" name="vaccines" value="Pentavalent">
+                                Pentavalent (1, 2, 3 මාත්‍රා)</label>
+                            <label class="checkbox-item"><input type="checkbox" name="vaccines" value="OPV"> OPV
+                                (පෝලියෝ)</label>
+                            <label class="checkbox-item"><input type="checkbox" name="vaccines" value="MMR"> MMR (සරම්ප,
+                                කම්මුල්ගාය, රුබෙල්ලා)</label>
+                            <label class="checkbox-item"><input type="checkbox" name="vaccines" value="JE"> JE (ජපන්
+                                මොළයේ උණ)</label>
+                            <label class="checkbox-item"><input type="checkbox" name="vaccines" value="HPV"> HPV (ගැහැණු
+                                දරුවන් සඳහා)</label>
+                            <label class="checkbox-item"><input type="checkbox" name="vaccines" value="aTd / DT"> aTd /
+                                DT (පිටගැස්ම සහ ඩිප්තීරියා)</label>
+                            <label class="checkbox-item"><input type="checkbox" name="vaccines" value="Tetanus Toxoid">
+                                Tetanus Toxoid (වැඩිහිටියන් සඳහා)</label>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-section">
+                    <div class="section-title">👩 සුවනාරි සායනය (Suwa Naari / Well Woman Clinic)</div>
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label class="form-label">සුවනාරි සායනයට සහභාගී වී තිබේද?</label>
+                            <div class="radio-group">
+                                <label class="radio-item"><input type="radio" name="attendedSuwanaari" value="yes">
+                                    ඔව්</label>
+                                <label class="radio-item"><input type="radio" name="attendedSuwanaari" value="no">
+                                    නැත</label>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label" for="suwanaariLastVisit">අවසාන වරට සහභාගී වූ දිනය/වර්ෂය</label>
+                            <input type="date" class="form-control" id="suwanaariLastVisit">
+                        </div>
+                        <div class="form-group form-full">
+                            <label class="form-label" for="suwanaariDetails">හඳුනාගත් සෞඛ්‍ය ගැටළු හෝ වාර්තා</label>
+                            <textarea class="form-control" id="suwanaariDetails" rows="2"
+                                placeholder="සායනයෙන් හඳුනාගත් තොරතුරු මෙහි ලියන්න..."></textarea>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Modal Footer -->
+            <div class="modal-footer">
+                <div class="modal-footer-left">
+                    <button class="btn btn-ghost" onclick="prevTab()" id="btn-prev">← පෙර</button>
+                </div>
+                <div class="modal-footer-right">
+                    <button class="btn btn-ghost" onclick="closeModal()">අවලංගු කරන්න</button>
+                    <button class="btn btn-secondary" onclick="nextTab()" id="btn-next">ඊළඟ →</button>
+                    <button class="btn btn-primary" onclick="saveRecord()" id="btn-save">💾 වාර්තාව සුරකින්න</button>
+                </div>
+            </div>
+
+        </div><!-- .modal-container -->
+    </div><!-- #modal-overlay -->
+
+    <!-- ═══════════════════════════════════════ VIEW MODAL ══════════════════════════════════════ -->
+    <div class="modal-overlay" id="view-modal-overlay">
+        <div class="modal-container">
+            <div class="modal-header">
+                <div>
+                    <div class="modal-title">📋 පවුල් වාර්තාව බලන්න</div>
+                    <div class="modal-subtitle">View Family Record</div>
+                </div>
+                <button class="modal-close"
+                    onclick="document.getElementById('view-modal-overlay').classList.remove('active')">✕</button>
+            </div>
+            <div style="padding:24px 28px;max-height:70vh;overflow-y:auto" id="view-modal-body"></div>
+            <div class="modal-footer">
+                <div class="modal-footer-left">
+                    <button class="btn btn-ghost btn-sm" id="view-modal-print-btn">🖨️ මුද්‍රණය</button>
+                </div>
+                <div class="modal-footer-right">
+                    <button class="btn btn-secondary btn-sm" id="view-modal-edit-btn">✏️ සංස්කරණය</button>
+                    <button class="btn btn-ghost"
+                        onclick="document.getElementById('view-modal-overlay').classList.remove('active')">වසන්න</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ═════════ Printing & QR Helper Area (Hidden) ═════════ -->
+    <div id="qr-print-temp"
+        style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:white; color:black; z-index:9999; padding:40px; font-family: sans-serif; pointer-events:none;">
+        <div
+            style="text-align:center; border:2px solid #333; padding:20px; border-radius:15px; max-width:400px; margin:0 auto; background:white;">
+            <h2 id="print-name" style="margin-bottom:5px; color:black;">පවුලේ තොරතුරු</h2>
+            <p id="print-nic" style="color:#555; margin-bottom:20px;">NIC: —</p>
+            <div id="print-qr-container" style="display:inline-block; margin-bottom:20px;"></div>
+            <p style="color:black; font-size:12px; font-weight:bold; margin:5px 0;">Ahaspokuna South Family Database</p>
+            <p style="color:#666; font-size:10px;">මෙම කේතය ස්කෑන් කිරීමෙන් සම්පූර්ණ විස්තර ලබාගත හැක.</p>
+        </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════ CONFIRM DIALOG ══════════════════════════════════ -->
+    <div class="confirm-dialog" id="confirm-dialog">
+        <div class="confirm-box">
+            <div class="confirm-icon">⚠️</div>
+            <div class="confirm-title" id="confirm-title">ඔබට විශ්වාසද?</div>
+            <div class="confirm-message" id="confirm-message">මෙම ක්‍රියාව ස්ථිරවම සිදු කෙරේ.</div>
+            <div class="confirm-actions">
+                <button class="btn btn-ghost" id="confirm-no">නැත, නවතන්න</button>
+                <button class="btn btn-danger" id="confirm-yes">ඔව්, ඉදිරියට යන්න</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ══ EDIT USER MODAL ══ -->
+    <div class="modal-overlay" id="edit-user-modal">
+        <div class="modal-container" style="max-width:400px">
+            <div class="modal-header">
+                <div>
+                    <div class="modal-title">පරිශීලක සංස්කරණය</div>
+                    <div class="modal-subtitle">Username සහ Password වෙනස් කරන්න</div>
+                </div>
+                <button class="modal-close" onclick="$('edit-user-modal').classList.remove('active')">✕</button>
+            </div>
+            <div style="padding:20px">
+                <input type="hidden" id="edit-user-id">
+                <div class="form-group" style="margin-bottom:14px">
+                    <label class="form-label">පරිශීලක නාමය</label>
+                    <input type="text" class="form-control" id="edit-user-username">
+                </div>
+                <div class="form-group" style="margin-bottom:14px">
+                    <label class="form-label">භූමිකාව</label>
+                    <select class="form-control" id="edit-user-role">
+                        <option value="operator">Operator</option>
+                        <option value="admin">Admin</option>
+                    </select>
+                </div>
+                <div class="form-group" style="margin-bottom:14px">
+                    <label class="form-label">නව මුරපදය (හිස්ව තැබුවහොත් වෙනස් නොවේ)</label>
+                    <input type="password" class="form-control" id="edit-user-password" placeholder="••••••••">
+                </div>
+                <div class="form-group" style="margin-bottom:20px">
+                    <label class="form-label">මුරපදය තහවුරු කරන්න</label>
+                    <input type="password" class="form-control" id="edit-user-confirm" placeholder="••••••••">
+                </div>
+                <div id="edit-user-error" class="auth-error-msg" style="margin-bottom:12px"></div>
+                <button class="btn btn-primary w-full" style="width:100%" onclick="saveUserEdit()">💾 සුරකින්න</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════ TOAST ══════════════════════════════════════════ -->
+    <div class="toast-container" id="toast-container"></div>
+
+    <script src="db.js"></script>
+    <script src="app.js"></script>
+
+    <!-- ═══════════════════════════ AUTH OVERLAY ═══════════════════════════ -->
+    <div id="auth-overlay">
+
+        <!-- LOGIN SCREEN -->
+        <div class="auth-card" id="auth-login-card">
+            <div class="auth-logo">🏛️</div>
+            <div class="auth-title">අහස්පොකුණ දකුණ</div>
+            <div class="auth-subtitle">පවුල් දත්ත කළමනාකරණ පද්ධතිය<br>ලොගින් වන්න / Sign In</div>
+            <form class="auth-form" onsubmit="Auth.login(event)">
+                <div class="auth-input-group">
+                    <label class="auth-label" for="login-username">👤 පරිශීලක නාමය (Username)</label>
+                    <input type="text" class="auth-input" id="login-username" placeholder="username"
+                        autocomplete="username" required>
+                </div>
+                <div class="auth-input-group">
+                    <label class="auth-label" for="login-password">🔑 මුරපදය (Password)</label>
+                    <input type="password" class="auth-input" id="login-password" placeholder="••••••••"
+                        autocomplete="current-password" required>
+                </div>
+                <div class="auth-error-msg" id="login-error"></div>
+                <button type="submit" class="auth-btn" id="login-btn">🔓 ලොගින් වන්න</button>
+            </form>
+        </div>
+
+        <!-- FIRST-RUN SETUP SCREEN (hidden initially) -->
+        <div class="auth-card" id="auth-setup-card" style="display:none">
+            <div class="auth-logo">⚙️</div>
+            <div class="auth-title">පද්ධතිය ස්ථාපනය</div>
+            <div class="auth-subtitle">පළමු වරට ලොගින් වීම<br>Admin ගිණුම සාදන්න</div>
+            <form class="auth-form" onsubmit="Auth.setupAdmin(event)">
+                <div class="auth-input-group">
+                    <label class="auth-label" for="setup-username">👤 Admin පරිශීලක නාමය</label>
+                    <input type="text" class="auth-input" id="setup-username" placeholder="admin" value="admin"
+                        required>
+                </div>
+                <div class="auth-input-group">
+                    <label class="auth-label" for="setup-password">🔑 Admin මුරපදය</label>
+                    <input type="password" class="auth-input" id="setup-password"
+                        placeholder="ශක්තිමත් මුරපදයක් ඇතුළු කරන්න" required>
+                </div>
+                <div class="auth-input-group">
+                    <label class="auth-label" for="setup-confirm">🔑 මුරපදය තහවුරු කරන්න</label>
+                    <input type="password" class="auth-input" id="setup-confirm" placeholder="නැවත ඇතුළු කරන්න"
+                        required>
+                </div>
+                <div class="auth-error-msg" id="setup-error"></div>
+                <button type="submit" class="auth-btn" id="setup-btn">✅ Admin ගිණුම සාදන්න</button>
+            </form>
+        </div>
+
+    </div>
+
+</body>
+
+</html>

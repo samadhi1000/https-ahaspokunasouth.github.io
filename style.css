@@ -1,0 +1,1704 @@
+/* =========================================================
+   Ahaspokuna South Family Database - Premium Dark Theme
+   ========================================================= */
+
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Sinhala:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap');
+
+/* === CSS Variables === */
+:root {
+    --bg-primary: #0a0e1a;
+    --bg-secondary: #0f1527;
+    --bg-card: rgba(255, 255, 255, 0.04);
+    --bg-card-hover: rgba(255, 255, 255, 0.07);
+    --bg-input: rgba(255, 255, 255, 0.06);
+    --bg-input-focus: rgba(255, 255, 255, 0.1);
+    --border: rgba(255, 255, 255, 0.1);
+    --border-focus: rgba(212, 175, 55, 0.6);
+    --gold: #D4AF37;
+    --gold-light: #F0D060;
+    --gold-dim: rgba(212, 175, 55, 0.15);
+    --blue-accent: #3D6BFF;
+    --blue-light: rgba(61, 107, 255, 0.15);
+    --green: #2ECC71;
+    --green-dim: rgba(46, 204, 113, 0.15);
+    --red: #E74C3C;
+    --red-dim: rgba(231, 76, 60, 0.15);
+    --orange: #F39C12;
+    --text-primary: #F0F2F8;
+    --text-secondary: #9AA3B5;
+    --text-muted: #5A6480;
+    --tab-active-bg: linear-gradient(135deg, rgba(212, 175, 55, 0.25), rgba(61, 107, 255, 0.15));
+    --shadow-card: 0 8px 32px rgba(0, 0, 0, 0.4);
+    --shadow-glow: 0 0 20px rgba(212, 175, 55, 0.15);
+    --radius-card: 16px;
+    --radius-input: 10px;
+    --radius-btn: 10px;
+    --transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* === Reset === */
+*,
+*::before,
+*::after {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+html {
+    scroll-behavior: smooth;
+}
+
+body {
+    font-family: 'Inter', 'Noto Sans Sinhala', sans-serif;
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    min-height: 100vh;
+    overflow-x: hidden;
+}
+
+/* === Animated Background === */
+body::before {
+    content: '';
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background:
+        radial-gradient(ellipse at 20% 20%, rgba(61, 107, 255, 0.08) 0%, transparent 50%),
+        radial-gradient(ellipse at 80% 80%, rgba(212, 175, 55, 0.06) 0%, transparent 50%),
+        radial-gradient(ellipse at 50% 50%, rgba(46, 204, 113, 0.03) 0%, transparent 60%);
+    pointer-events: none;
+    z-index: 0;
+}
+
+/* === Header === */
+.app-header {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    background: rgba(10, 14, 26, 0.85);
+    backdrop-filter: blur(20px);
+    border-bottom: 1px solid var(--border);
+    padding: 0 24px;
+}
+
+.header-inner {
+    max-width: 1400px;
+    margin: 0 auto;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 68px;
+    gap: 16px;
+}
+
+.header-brand {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+}
+
+.header-logo {
+    width: 44px;
+    height: 44px;
+    background: linear-gradient(135deg, var(--gold), var(--blue-accent));
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 22px;
+    box-shadow: 0 4px 16px rgba(212, 175, 55, 0.3);
+    flex-shrink: 0;
+}
+
+.header-title h1 {
+    font-family: 'Noto Sans Sinhala', sans-serif;
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--text-primary);
+    line-height: 1.2;
+}
+
+.header-title p {
+    font-size: 11px;
+    color: var(--text-muted);
+    font-weight: 400;
+}
+
+.header-actions {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+}
+
+/* === Main Layout === */
+.app-main {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 24px;
+    position: relative;
+    z-index: 1;
+}
+
+/* === Dashboard Cards === */
+.dashboard-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 16px;
+    margin-bottom: 24px;
+}
+
+.stat-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-card);
+    padding: 20px 24px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    transition: var(--transition);
+    cursor: default;
+}
+
+.stat-card:hover {
+    background: var(--bg-card-hover);
+    border-color: rgba(212, 175, 55, 0.3);
+    box-shadow: var(--shadow-glow);
+    transform: translateY(-2px);
+}
+
+.stat-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 22px;
+    flex-shrink: 0;
+}
+
+.stat-icon.gold {
+    background: var(--gold-dim);
+}
+
+.stat-icon.blue {
+    background: var(--blue-light);
+}
+
+.stat-icon.green {
+    background: var(--green-dim);
+}
+
+.stat-icon.orange {
+    background: rgba(243, 156, 18, 0.15);
+}
+
+.stat-value {
+    font-size: 32px;
+    font-weight: 700;
+    color: var(--gold);
+    line-height: 1;
+}
+
+.stat-label {
+    font-size: 12px;
+    color: var(--text-muted);
+    font-family: 'Noto Sans Sinhala', sans-serif;
+    margin-top: 4px;
+}
+
+/* === Panel === */
+.panel {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-card);
+    overflow: hidden;
+    margin-bottom: 24px;
+}
+
+.panel-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 18px 24px;
+    border-bottom: 1px solid var(--border);
+    background: rgba(255, 255, 255, 0.02);
+}
+
+.panel-title {
+    font-family: 'Noto Sans Sinhala', sans-serif;
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--text-primary);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.panel-title .icon {
+    font-size: 18px;
+}
+
+.panel-body {
+    padding: 20px 24px;
+}
+
+/* === Buttons === */
+.btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 20px;
+    border-radius: var(--radius-btn);
+    font-size: 13px;
+    font-weight: 600;
+    font-family: 'Noto Sans Sinhala', sans-serif;
+    cursor: pointer;
+    border: none;
+    outline: none;
+    transition: var(--transition);
+    text-decoration: none;
+    white-space: nowrap;
+}
+
+.btn-primary {
+    background: linear-gradient(135deg, var(--gold), #B8960C);
+    color: #0a0e1a;
+    box-shadow: 0 4px 16px rgba(212, 175, 55, 0.3);
+}
+
+.btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 24px rgba(212, 175, 55, 0.45);
+}
+
+.btn-secondary {
+    background: var(--blue-light);
+    color: var(--blue-accent);
+    border: 1px solid rgba(61, 107, 255, 0.3);
+}
+
+.btn-secondary:hover {
+    background: rgba(61, 107, 255, 0.25);
+    transform: translateY(-1px);
+}
+
+.btn-danger {
+    background: var(--red-dim);
+    color: var(--red);
+    border: 1px solid rgba(231, 76, 60, 0.3);
+}
+
+.btn-danger:hover {
+    background: rgba(231, 76, 60, 0.25);
+}
+
+.btn-ghost {
+    background: transparent;
+    color: var(--text-secondary);
+    border: 1px solid var(--border);
+}
+
+.btn-ghost:hover {
+    background: var(--bg-card);
+    color: var(--text-primary);
+}
+
+.btn-success {
+    background: var(--green-dim);
+    color: var(--green);
+    border: 1px solid rgba(46, 204, 113, 0.3);
+}
+
+.btn-success:hover {
+    background: rgba(46, 204, 113, 0.25);
+}
+
+.btn-sm {
+    padding: 6px 14px;
+    font-size: 12px;
+}
+
+.btn-icon {
+    padding: 8px;
+    width: 36px;
+    height: 36px;
+    justify-content: center;
+}
+
+/* === Search Bar === */
+.search-bar {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+}
+
+.search-input-wrap {
+    position: relative;
+    flex: 1;
+}
+
+.search-input-wrap .search-icon {
+    position: absolute;
+    left: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--text-muted);
+    font-size: 15px;
+    pointer-events: none;
+}
+
+.search-input {
+    width: 100%;
+    background: var(--bg-input);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-input);
+    color: var(--text-primary);
+    padding: 10px 14px 10px 38px;
+    font-size: 13px;
+    font-family: 'Noto Sans Sinhala', sans-serif;
+    transition: var(--transition);
+}
+
+.search-input:focus {
+    outline: none;
+    border-color: var(--border-focus);
+    background: var(--bg-input-focus);
+    box-shadow: 0 0 0 3px rgba(212, 175, 55, 0.1);
+}
+
+/* === Records Table === */
+.records-table-wrap {
+    overflow-x: auto;
+}
+
+.records-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+}
+
+.records-table th {
+    font-family: 'Noto Sans Sinhala', sans-serif;
+    font-weight: 600;
+    font-size: 11px;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--border);
+    text-align: left;
+    background: rgba(255, 255, 255, 0.02);
+    white-space: nowrap;
+}
+
+.records-table td {
+    padding: 13px 14px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+    color: var(--text-secondary);
+    vertical-align: middle;
+}
+
+.records-table tbody tr {
+    transition: var(--transition);
+}
+
+.records-table tbody tr:hover {
+    background: var(--bg-card-hover);
+    color: var(--text-primary);
+}
+
+.records-table tbody tr:hover td {
+    color: var(--text-primary);
+}
+
+.name-cell {
+    color: var(--text-primary) !important;
+    font-weight: 500;
+}
+
+.nic-badge {
+    display: inline-block;
+    background: var(--blue-light);
+    color: var(--blue-accent);
+    padding: 2px 10px;
+    border-radius: 20px;
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.5px;
+}
+
+.empty-state {
+    text-align: center;
+    padding: 60px 20px;
+    color: var(--text-muted);
+}
+
+.empty-state .empty-icon {
+    font-size: 48px;
+    margin-bottom: 16px;
+}
+
+.empty-state p {
+    font-family: 'Noto Sans Sinhala', sans-serif;
+    font-size: 14px;
+}
+
+/* === Modal Overlay === */
+.modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.75);
+    backdrop-filter: blur(8px);
+    z-index: 200;
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    padding: 20px;
+    overflow-y: auto;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s ease;
+}
+
+.modal-overlay.active {
+    opacity: 1;
+    pointer-events: all;
+}
+
+.modal-container {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    width: 100%;
+    max-width: 860px;
+    box-shadow: 0 24px 80px rgba(0, 0, 0, 0.6);
+    transform: translateY(30px);
+    transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+    margin: auto;
+}
+
+.modal-overlay.active .modal-container {
+    transform: translateY(0);
+}
+
+.modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 20px 28px;
+    border-bottom: 1px solid var(--border);
+    background: rgba(255, 255, 255, 0.02);
+    border-radius: 20px 20px 0 0;
+}
+
+.modal-title {
+    font-family: 'Noto Sans Sinhala', sans-serif;
+    font-size: 17px;
+    font-weight: 700;
+    color: var(--text-primary);
+}
+
+.modal-subtitle {
+    font-size: 12px;
+    color: var(--text-muted);
+    margin-top: 2px;
+}
+
+.modal-close {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    border: 1px solid var(--border);
+    background: transparent;
+    color: var(--text-secondary);
+    cursor: pointer;
+    font-size: 18px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: var(--transition);
+}
+
+.modal-close:hover {
+    background: var(--red-dim);
+    color: var(--red);
+    border-color: var(--red);
+}
+
+/* === Tab Navigation === */
+.tab-nav {
+    display: flex;
+    overflow-x: auto;
+    scrollbar-width: none;
+    padding: 16px 20px 0;
+    gap: 4px;
+    border-bottom: 1px solid var(--border);
+}
+
+.tab-nav::-webkit-scrollbar {
+    display: none;
+}
+
+.tab-btn {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    padding: 10px 16px;
+    border-radius: 10px 10px 0 0;
+    border: 1px solid transparent;
+    border-bottom: none;
+    background: transparent;
+    color: var(--text-muted);
+    font-family: 'Noto Sans Sinhala', sans-serif;
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: var(--transition);
+    position: relative;
+    bottom: -1px;
+}
+
+.tab-btn:hover {
+    color: var(--text-secondary);
+    background: var(--bg-card);
+}
+
+.tab-btn.active {
+    color: var(--gold);
+    background: var(--bg-secondary);
+    border-color: var(--border);
+    border-bottom-color: var(--bg-secondary);
+}
+
+.tab-btn .tab-num {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: var(--bg-card);
+    font-size: 10px;
+    font-weight: 700;
+    color: var(--text-muted);
+    transition: var(--transition);
+}
+
+.tab-btn.active .tab-num {
+    background: var(--gold-dim);
+    color: var(--gold);
+}
+
+.tab-btn.completed .tab-num {
+    background: var(--green-dim);
+    color: var(--green);
+}
+
+/* === Form Panels === */
+.tab-panel {
+    display: none;
+    padding: 24px 28px;
+}
+
+.tab-panel.active {
+    display: block;
+}
+
+.form-section {
+    margin-bottom: 28px;
+}
+
+.section-title {
+    font-family: 'Noto Sans Sinhala', sans-serif;
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--gold);
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--gold-dim);
+}
+
+.form-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 16px;
+}
+
+.form-grid-3 {
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+}
+
+.form-full {
+    grid-column: 1 / -1;
+}
+
+.form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.form-label {
+    font-family: 'Noto Sans Sinhala', sans-serif;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.required-star {
+    color: var(--red);
+    font-size: 14px;
+    line-height: 1;
+}
+
+/* === Inputs === */
+.form-control {
+    background: var(--bg-input);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-input);
+    color: var(--text-primary);
+    padding: 10px 14px;
+    font-size: 13px;
+    font-family: 'Noto Sans Sinhala', sans-serif;
+    transition: var(--transition);
+    width: 100%;
+}
+
+.form-control:focus {
+    outline: none;
+    border-color: var(--border-focus);
+    background: var(--bg-input-focus);
+    box-shadow: 0 0 0 3px rgba(212, 175, 55, 0.1);
+}
+
+.form-control.error {
+    border-color: var(--red);
+    background: var(--red-dim);
+    box-shadow: 0 0 0 3px rgba(231, 76, 60, 0.1);
+}
+
+.form-control.success {
+    border-color: var(--green);
+    box-shadow: 0 0 0 3px rgba(46, 204, 113, 0.08);
+}
+
+.form-control:disabled,
+.form-control[readonly] {
+    opacity: 0.5;
+    cursor: not-allowed;
+    background: rgba(255, 255, 255, 0.02);
+}
+
+.form-control[readonly].auto-calc {
+    opacity: 0.8;
+    border-color: rgba(212, 175, 55, 0.3);
+    background: var(--gold-dim);
+    color: var(--gold);
+    font-weight: 700;
+}
+
+select.form-control {
+    cursor: pointer;
+}
+
+select.form-control option {
+    background: var(--bg-secondary);
+    color: var(--text-primary);
+}
+
+textarea.form-control {
+    resize: vertical;
+    min-height: 80px;
+}
+
+.field-hint {
+    font-size: 11px;
+    color: var(--text-muted);
+    font-family: 'Noto Sans Sinhala', sans-serif;
+}
+
+.field-error {
+    font-size: 11px;
+    color: var(--red);
+    font-family: 'Noto Sans Sinhala', sans-serif;
+    display: none;
+}
+
+.form-control.error~.field-error {
+    display: block;
+}
+
+/* === Radio & Checkbox Groups === */
+.radio-group,
+.checkbox-group {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    align-items: center;
+}
+
+.radio-item,
+.checkbox-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    padding: 8px 14px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background: var(--bg-input);
+    transition: var(--transition);
+    font-family: 'Noto Sans Sinhala', sans-serif;
+    font-size: 13px;
+}
+
+.radio-item:hover,
+.checkbox-item:hover {
+    border-color: rgba(212, 175, 55, 0.4);
+    background: var(--gold-dim);
+}
+
+.radio-item input[type="radio"],
+.checkbox-item input[type="checkbox"] {
+    accent-color: var(--gold);
+    width: 16px;
+    height: 16px;
+    cursor: pointer;
+}
+
+.radio-item:has(input:checked),
+.checkbox-item:has(input:checked) {
+    border-color: var(--gold);
+    background: var(--gold-dim);
+    color: var(--gold);
+}
+
+/* === Multi-row Grid === */
+.grid-table-wrap {
+    overflow-x: auto;
+}
+
+.grid-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12px;
+    margin-bottom: 10px;
+}
+
+.grid-table th {
+    background: rgba(255, 255, 255, 0.04);
+    padding: 8px 10px;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text-muted);
+    border-bottom: 1px solid var(--border);
+    font-family: 'Noto Sans Sinhala', sans-serif;
+    white-space: nowrap;
+}
+
+.grid-table td {
+    padding: 6px 6px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+.grid-table .form-control {
+    padding: 7px 10px;
+    font-size: 12px;
+}
+
+.add-row-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    padding: 7px 14px;
+}
+
+.remove-row-btn {
+    background: var(--red-dim);
+    color: var(--red);
+    border: 1px solid rgba(231, 76, 60, 0.3);
+    border-radius: 6px;
+    padding: 5px 10px;
+    cursor: pointer;
+    font-size: 11px;
+    transition: var(--transition);
+}
+
+.remove-row-btn:hover {
+    background: rgba(231, 76, 60, 0.3);
+}
+
+/* === Member Management === */
+.member-tabs {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-bottom: 20px;
+    padding: 16px 20px;
+    background: rgba(255, 255, 255, 0.02);
+    border-radius: 12px;
+    border: 1px solid var(--border);
+}
+
+.member-tab-btn {
+    padding: 7px 16px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background: transparent;
+    color: var(--text-muted);
+    cursor: pointer;
+    font-size: 12px;
+    font-family: 'Noto Sans Sinhala', sans-serif;
+    transition: var(--transition);
+}
+
+.member-tab-btn:hover {
+    background: var(--bg-card);
+    color: var(--text-primary);
+}
+
+.member-tab-btn.active {
+    background: var(--gold-dim);
+    color: var(--gold);
+    border-color: var(--gold);
+}
+
+.add-member-btn {
+    background: var(--blue-light);
+    color: var(--blue-accent);
+    border: 1px dashed rgba(61, 107, 255, 0.4);
+    padding: 7px 16px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 12px;
+    font-family: 'Noto Sans Sinhala', sans-serif;
+    transition: var(--transition);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.add-member-btn:hover {
+    background: rgba(61, 107, 255, 0.25);
+}
+
+.member-form-panel {
+    display: none;
+}
+
+.member-form-panel.active {
+    display: block;
+}
+
+/* === Modal Footer === */
+.modal-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 18px 28px;
+    border-top: 1px solid var(--border);
+    background: rgba(255, 255, 255, 0.02);
+    border-radius: 0 0 20px 20px;
+    flex-wrap: wrap;
+    gap: 12px;
+}
+
+.modal-footer-left {
+    display: flex;
+    gap: 10px;
+}
+
+.modal-footer-right {
+    display: flex;
+    gap: 10px;
+}
+
+/* === Progress Indicator === */
+.progress-bar-wrap {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 28px;
+    border-bottom: 1px solid var(--border);
+}
+
+.progress-bar {
+    flex: 1;
+    height: 4px;
+    background: var(--border);
+    border-radius: 2px;
+    overflow: hidden;
+}
+
+.progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--blue-accent), var(--gold));
+    border-radius: 2px;
+    transition: width 0.4s ease;
+}
+
+.progress-text {
+    font-size: 11px;
+    color: var(--text-muted);
+    white-space: nowrap;
+}
+
+/* === View Record Modal === */
+.view-section {
+    margin-bottom: 20px;
+}
+
+.view-section-title {
+    font-family: 'Noto Sans Sinhala', sans-serif;
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--gold);
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    margin-bottom: 12px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--gold-dim);
+}
+
+.view-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 12px;
+}
+
+.view-field {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+}
+
+.view-field-label {
+    font-family: 'Noto Sans Sinhala', sans-serif;
+    font-size: 11px;
+    color: var(--text-muted);
+    font-weight: 600;
+}
+
+.view-field-value {
+    font-size: 13px;
+    color: var(--text-primary);
+    font-family: 'Noto Sans Sinhala', sans-serif;
+}
+
+.view-field-value:empty::before {
+    content: '—';
+    color: var(--text-muted);
+}
+
+/* === Confirm Dialog === */
+.confirm-dialog {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.85);
+    backdrop-filter: blur(12px);
+    z-index: 300;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s ease;
+}
+
+.confirm-dialog.active {
+    opacity: 1;
+    pointer-events: all;
+}
+
+.confirm-box {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 32px;
+    max-width: 380px;
+    width: 90%;
+    text-align: center;
+    transform: scale(0.9);
+    transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.confirm-dialog.active .confirm-box {
+    transform: scale(1);
+}
+
+.confirm-icon {
+    font-size: 40px;
+    margin-bottom: 16px;
+}
+
+.confirm-title {
+    font-family: 'Noto Sans Sinhala', sans-serif;
+    font-size: 17px;
+    font-weight: 700;
+    margin-bottom: 10px;
+}
+
+.confirm-message {
+    font-family: 'Noto Sans Sinhala', sans-serif;
+    font-size: 13px;
+    color: var(--text-secondary);
+    margin-bottom: 24px;
+    line-height: 1.6;
+}
+
+.confirm-actions {
+    display: flex;
+    gap: 12px;
+    justify-content: center;
+}
+
+/* === Toast Notification === */
+.toast-container {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    z-index: 400;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.toast {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 14px 20px;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+    min-width: 280px;
+    animation: slideInToast 0.3s ease, fadeOutToast 0.3s ease 2.7s forwards;
+    font-family: 'Noto Sans Sinhala', sans-serif;
+    font-size: 13px;
+}
+
+.toast.success {
+    border-left: 3px solid var(--green);
+}
+
+.toast.error {
+    border-left: 3px solid var(--red);
+}
+
+.toast.info {
+    border-left: 3px solid var(--blue-accent);
+}
+
+.toast-icon {
+    font-size: 18px;
+    flex-shrink: 0;
+}
+
+@keyframes slideInToast {
+    from {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+@keyframes fadeOutToast {
+    from {
+        opacity: 1;
+    }
+
+    to {
+        opacity: 0;
+        transform: translateX(100%);
+    }
+}
+
+/* === Scrollbar === */
+::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+}
+
+::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.2);
+}
+
+/* === Utilities === */
+.text-gold {
+    color: var(--gold);
+}
+
+.text-muted {
+    color: var(--text-muted);
+}
+
+.text-green {
+    color: var(--green);
+}
+
+.text-red {
+    color: var(--red);
+}
+
+.text-sinhala {
+    font-family: 'Noto Sans Sinhala', sans-serif;
+}
+
+.mt-4 {
+    margin-top: 8px;
+}
+
+.mt-8 {
+    margin-top: 16px;
+}
+
+.mt-16 {
+    margin-top: 32px;
+}
+
+.d-flex {
+    display: flex;
+}
+
+.gap-8 {
+    gap: 8px;
+}
+
+.gap-16 {
+    gap: 16px;
+}
+
+.align-center {
+    align-items: center;
+}
+
+.justify-between {
+    justify-content: space-between;
+}
+
+.divider {
+    height: 1px;
+    background: var(--border);
+    margin: 20px 0;
+}
+
+/* === Responsive === */
+@media (max-width: 768px) {
+    .app-main {
+        padding: 16px;
+    }
+
+    .header-inner {
+        flex-wrap: wrap;
+        height: auto;
+        padding: 12px 0;
+    }
+
+    .tab-btn {
+        padding: 8px 12px;
+        font-size: 11px;
+    }
+
+    .form-grid,
+    .form-grid-3 {
+        grid-template-columns: 1fr;
+    }
+
+    .modal-container {
+        max-width: 100%;
+    }
+
+    .dashboard-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .records-table th:nth-child(n+4),
+    .records-table td:nth-child(n+4) {
+        display: none;
+    }
+}
+
+@media print {
+
+    .app-header,
+    .panel-header .btn,
+    .modal-footer,
+    .tab-nav {
+        display: none;
+    }
+
+    .modal-container {
+        box-shadow: none;
+        border: none;
+    }
+
+    body {
+        background: white;
+        color: black;
+    }
+}
+
+/* ═══════════════════════════════════════════════
+   AUTH / LOGIN SCREEN STYLES
+═══════════════════════════════════════════════ */
+
+/* Full-screen login overlay */
+#auth-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 1000;
+    background: var(--bg-primary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    transition: opacity 0.4s ease;
+}
+
+#auth-overlay.hiding {
+    opacity: 0;
+    pointer-events: none;
+}
+
+#auth-overlay.hidden {
+    display: none;
+}
+
+/* Login / Setup card */
+.auth-card {
+    width: 100%;
+    max-width: 420px;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border);
+    border-radius: 24px;
+    padding: 40px 36px;
+    box-shadow: 0 32px 80px rgba(0, 0, 0, 0.6), var(--shadow-glow);
+    animation: authCardIn 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+    position: relative;
+    overflow: hidden;
+}
+
+.auth-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, var(--gold), var(--blue-accent), var(--green));
+}
+
+@keyframes authCardIn {
+    from {
+        opacity: 0;
+        transform: translateY(40px) scale(0.95);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+.auth-logo {
+    width: 64px;
+    height: 64px;
+    background: linear-gradient(135deg, var(--gold), var(--blue-accent));
+    border-radius: 18px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 32px;
+    margin: 0 auto 20px;
+    box-shadow: 0 8px 24px rgba(212, 175, 55, 0.35);
+    animation: logoPulse 3s ease-in-out infinite;
+}
+
+@keyframes logoPulse {
+
+    0%,
+    100% {
+        box-shadow: 0 8px 24px rgba(212, 175, 55, 0.35);
+    }
+
+    50% {
+        box-shadow: 0 8px 40px rgba(212, 175, 55, 0.6);
+    }
+}
+
+.auth-title {
+    font-family: 'Noto Sans Sinhala', sans-serif;
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--text-primary);
+    text-align: center;
+    margin-bottom: 4px;
+}
+
+.auth-subtitle {
+    font-size: 12px;
+    color: var(--text-muted);
+    text-align: center;
+    margin-bottom: 28px;
+    font-family: 'Noto Sans Sinhala', sans-serif;
+    line-height: 1.5;
+}
+
+.auth-form {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.auth-input-group {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.auth-label {
+    font-family: 'Noto Sans Sinhala', sans-serif;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-secondary);
+}
+
+.auth-input {
+    background: var(--bg-input);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-input);
+    color: var(--text-primary);
+    padding: 12px 16px;
+    font-size: 14px;
+    font-family: 'Noto Sans Sinhala', sans-serif;
+    transition: var(--transition);
+    width: 100%;
+}
+
+.auth-input:focus {
+    outline: none;
+    border-color: var(--border-focus);
+    background: var(--bg-input-focus);
+    box-shadow: 0 0 0 3px rgba(212, 175, 55, 0.12);
+}
+
+.auth-input.error {
+    border-color: var(--red);
+    background: var(--red-dim);
+}
+
+.auth-error-msg {
+    font-family: 'Noto Sans Sinhala', sans-serif;
+    font-size: 12px;
+    color: var(--red);
+    padding: 10px 14px;
+    background: var(--red-dim);
+    border-radius: 8px;
+    border: 1px solid rgba(231, 76, 60, 0.3);
+    display: none;
+}
+
+.auth-error-msg.visible {
+    display: block;
+}
+
+.auth-btn {
+    width: 100%;
+    background: linear-gradient(135deg, var(--gold), #B8960C);
+    color: #0a0e1a;
+    font-weight: 700;
+    border: none;
+    border-radius: var(--radius-btn);
+    padding: 13px;
+    font-size: 14px;
+    font-family: 'Noto Sans Sinhala', sans-serif;
+    cursor: pointer;
+    box-shadow: 0 4px 16px rgba(212, 175, 55, 0.35);
+    transition: var(--transition);
+    margin-top: 4px;
+}
+
+.auth-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 24px rgba(212, 175, 55, 0.5);
+}
+
+.auth-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+}
+
+.auth-divider {
+    height: 1px;
+    background: var(--border);
+    margin: 4px 0;
+}
+
+/* ── Role Badge (in header) ── */
+.user-badge {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 14px;
+    border-radius: 20px;
+    border: 1px solid var(--border);
+    background: var(--bg-card);
+    font-size: 12px;
+    font-weight: 600;
+    font-family: 'Noto Sans Sinhala', sans-serif;
+    cursor: default;
+}
+
+.user-badge .role-tag {
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+}
+
+.role-tag.admin {
+    background: var(--gold-dim);
+    color: var(--gold);
+}
+
+.role-tag.operator {
+    background: var(--blue-light);
+    color: var(--blue-accent);
+}
+
+.logout-btn {
+    padding: 6px 12px;
+    border-radius: 8px;
+    border: 1px solid rgba(231, 76, 60, 0.3);
+    background: var(--red-dim);
+    color: var(--red);
+    font-size: 11px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: var(--transition);
+    font-family: 'Noto Sans Sinhala', sans-serif;
+}
+
+.logout-btn:hover {
+    background: rgba(231, 76, 60, 0.25);
+}
+
+/* ── Admin Panel ── */
+.admin-panel {
+    border: 1px solid rgba(212, 175, 55, 0.2);
+    border-radius: var(--radius-card);
+    overflow: hidden;
+    margin-bottom: 24px;
+    background: rgba(212, 175, 55, 0.02);
+}
+
+.admin-panel-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 24px;
+    background: rgba(212, 175, 55, 0.06);
+    border-bottom: 1px solid rgba(212, 175, 55, 0.15);
+}
+
+.admin-panel-title {
+    font-family: 'Noto Sans Sinhala', sans-serif;
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--gold);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.admin-panel-body {
+    padding: 20px 24px;
+}
+
+/* User management table */
+.users-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+    margin-bottom: 20px;
+}
+
+.users-table th {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    padding: 8px 12px;
+    border-bottom: 1px solid var(--border);
+    background: rgba(255, 255, 255, 0.02);
+    font-family: 'Noto Sans Sinhala', sans-serif;
+    text-align: left;
+}
+
+.users-table td {
+    padding: 12px 12px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+    color: var(--text-secondary);
+    vertical-align: middle;
+}
+
+.users-table tbody tr:hover {
+    background: var(--bg-card-hover);
+}
+
+/* Add user form */
+.add-user-form {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 12px;
+    align-items: end;
+    padding: 16px;
+    background: rgba(255, 255, 255, 0.02);
+    border-radius: 12px;
+    border: 1px dashed var(--border);
+}
+
+/* Activity Log */
+.log-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12px;
+}
+
+.log-table th {
+    font-size: 10px;
+    font-weight: 600;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    padding: 6px 10px;
+    border-bottom: 1px solid var(--border);
+    background: rgba(255, 255, 255, 0.02);
+    font-family: 'Noto Sans Sinhala', sans-serif;
+}
+
+.log-table td {
+    padding: 9px 10px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+    color: var(--text-secondary);
+    font-family: 'Noto Sans Sinhala', sans-serif;
+}
+
+.log-table tbody tr:hover {
+    background: rgba(255, 255, 255, 0.03);
+}
+
+.log-action {
+    font-weight: 600;
+}
+
+.log-action.add {
+    color: var(--green);
+}
+
+.log-action.edit {
+    color: var(--blue-accent);
+}
+
+.log-action.delete {
+    color: var(--red);
+}
+
+.log-action.login {
+    color: var(--gold);
+}
+
+/* Admin panel sub-tabs */
+.admin-tabs {
+    display: flex;
+    gap: 4px;
+    margin-bottom: 20px;
+    border-bottom: 1px solid var(--border);
+}
+
+.admin-tab-btn {
+    padding: 8px 18px;
+    border-radius: 8px 8px 0 0;
+    border: 1px solid transparent;
+    border-bottom: none;
+    background: transparent;
+    font-family: 'Noto Sans Sinhala', sans-serif;
+    font-size: 12px;
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: var(--transition);
+    position: relative;
+    bottom: -1px;
+}
+
+.admin-tab-btn:hover {
+    color: var(--text-secondary);
+    background: var(--bg-card);
+}
+
+.admin-tab-btn.active {
+    color: var(--gold);
+    background: var(--bg-secondary);
+    border-color: var(--border);
+    border-bottom-color: var(--bg-secondary);
+}
+
+.admin-tab-panel {
+    display: none;
+}
+
+.admin-tab-panel.active {
+    display: block;
+}
+
+/* === Print Specific Styles === */
+@media print {
+    body * {
+        visibility: hidden;
+    }
+    #qr-print-temp, #qr-print-temp * {
+        visibility: visible;
+    }
+    #qr-print-temp {
+        display: block !important;
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 100%;
+        background: white !important;
+        color: black !important;
+    }
+    .app-header, .app-main, .modal-overlay, #auth-overlay {
+        display: none !important;
+    }
+}
