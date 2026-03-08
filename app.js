@@ -53,56 +53,86 @@ const Auth = {
         setTimeout(() => document.getElementById('setup-password')?.focus(), 100);
     },
 
-    showApp() {
+    async showApp() {
         // Hide auth overlay
         const overlay = document.getElementById('auth-overlay');
         overlay.classList.add('hiding');
         setTimeout(() => overlay.classList.add('hidden'), 400);
-        // Show user badge
+
+        // --- Super Admin Migration / Verification ---
         const u = Auth.currentUser;
+        if (u && u.role === 'admin') {
+            try {
+                const users = await db.getAllUsers();
+                const hasSuper = users.some(user => user.role === 'super-admin');
+                if (!hasSuper) {
+                    // One-time upgrade: First admin becomes super-admin
+                    await db.updateUser(u.id, { role: 'super-admin' });
+                    u.role = 'super-admin';
+                    Auth.currentUser.role = 'super-admin';
+                    sessionStorage.setItem(Auth.SESSION_KEY, JSON.stringify(Auth.currentUser));
+                    showToast("👑 ඔබගේ ගිණුම Super Admin ලෙස උසස් කරන ලදී", 'info');
+                }
+            } catch (e) { console.error('Migration check failed:', e); }
+        }
+
+        // Show user badge
         const badge = document.getElementById('user-badge');
         const badgeName = document.getElementById('badge-username');
         const badgeRole = document.getElementById('badge-role');
         const logoutBtn = document.getElementById('btn-logout');
         if (badge) badge.style.display = 'flex';
         if (badgeName) badgeName.textContent = '👤 ' + u.username;
-        if (badgeRole) { badgeRole.textContent = u.role === 'admin' ? 'Admin' : 'Operator'; badgeRole.className = 'role-tag ' + u.role; }
+        if (badgeRole) {
+            let roleLabel = 'Operator';
+            if (u.role === 'super-admin') roleLabel = 'Super Admin';
+            else if (u.role === 'admin') roleLabel = 'Admin';
+            badgeRole.textContent = roleLabel;
+            badgeRole.className = 'role-tag ' + u.role;
+        }
         if (logoutBtn) logoutBtn.style.display = '';
+
         // Apply role-based UI
         Auth.applyRoleUI();
         // Load data
         loadRecords();
         updateStats();
-        if (u.role === 'admin') loadAdminPanel();
+        if (Auth.isAdmin()) loadAdminPanel();
+
         // Check for ?view=ID in URL
         const urlParams = new URLSearchParams(window.location.search);
         const viewId = urlParams.get('view');
         if (viewId) {
             setTimeout(() => viewRecord(viewId), 500);
-            // Clean up URL without reload
             window.history.replaceState({}, document.title, window.location.pathname);
         }
     },
 
     applyRoleUI() {
-        const isAdmin = Auth.currentUser?.role === 'admin';
+        const isAdmin = Auth.isAdmin();
         // Admin panel visibility
         const adminPanel = document.getElementById('admin-panel');
         if (adminPanel) adminPanel.style.display = isAdmin ? '' : 'none';
         // Delete buttons: hide for operators
-        // (re-applied after each loadRecords via renderDeleteBtns)
         Auth._patchDeleteButtons();
     },
 
     _patchDeleteButtons() {
         // Called after records are rendered
-        const isAdmin = Auth.currentUser?.role === 'admin';
+        const isAdmin = Auth.isAdmin();
         document.querySelectorAll('.btn-danger').forEach(btn => {
             btn.style.display = isAdmin ? '' : 'none';
         });
     },
 
-    isAdmin() { return Auth.currentUser?.role === 'admin'; },
+    isAdmin() {
+        const r = Auth.currentUser?.role;
+        return r === 'admin' || r === 'super-admin';
+    },
+
+    isSuper() {
+        return Auth.currentUser?.role === 'super-admin';
+    },
 
     async login(event) {
         event.preventDefault();
@@ -141,11 +171,11 @@ const Auth = {
         if (password !== confirm) { Auth._showAuthError(errEl, 'මුරපද දෙක ගැළපෙන්නේ නැත'); return; }
         if (btn) { btn.disabled = true; btn.textContent = '⏳ සාදමින්...'; }
         try {
-            await db.createUser({ username, password, role: 'admin' });
+            await db.createUser({ username, password, role: 'super-admin' });
             // Auto login
-            Auth.currentUser = { username, role: 'admin' };
+            Auth.currentUser = { username, role: 'super-admin' };
             sessionStorage.setItem(Auth.SESSION_KEY, JSON.stringify(Auth.currentUser));
-            db.addLog({ username, action: 'login', detail: 'Admin ගිණුම සාදා ලොගින් විය' });
+            db.addLog({ username, action: 'login', detail: 'Super Admin ගිණුම සාදා ලොගින් විය' });
             Auth.showApp();
         } catch (e) {
             Auth._showAuthError(errEl, 'ගිණුම සැදීමට අසමත් විය: ' + e);
@@ -184,23 +214,46 @@ async function loadAdminPanel() {
     // Load users
     try {
         const users = await db.getAllUsers();
+        let displayUsers = users;
+        const isSuper = Auth.isSuper();
+
+        // Filter: Ordinary Admins can't see Super Admins
+        if (!isSuper) {
+            displayUsers = users.filter(u => u.role !== 'super-admin');
+        }
+
+        // Update Role Selects (only Super Admin can create other Admins)
+        const roleOptions = `
+            <option value="operator">Operator (දත්ත ඇතුළත් කිරීම)</option>
+            ${isSuper ? '<option value="admin">Admin (පරිපාලක)</option>' : ''}
+        `;
+        const newRoleSelect = document.getElementById('new-role');
+        const editRoleSelect = document.getElementById('edit-user-role');
+        if (newRoleSelect) newRoleSelect.innerHTML = roleOptions;
+        if (editRoleSelect) editRoleSelect.innerHTML = roleOptions;
+
         const tbody = document.getElementById('users-table-body');
         if (tbody) {
-            if (users.length === 0) {
+            if (displayUsers.length === 0) {
                 tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;padding:16px;color:var(--text-muted)">පරිශීලකයන් නොමැත</td></tr>';
             } else {
-                tbody.innerHTML = users.map(u => `<tr>
-                    <td><strong style="color:var(--text-primary)">${u.username}</strong></td>
-                    <td><span class="role-tag ${u.role}">${u.role === 'admin' ? 'Admin' : 'Operator'}</span></td>
-                    <td class="text-muted">${u.createdAt ? new Date(u.createdAt).toLocaleDateString('si-LK') : '—'}</td>
-                    <td>${u.username !== Auth.currentUser?.username
-                        ? `<div style="display:flex;gap:6px">
-                            <button class="btn btn-secondary btn-sm" onclick="openEditUser('${u.id}','${u.username}','${u.role}')">✏️ Edit</button>
-                            <button class="btn btn-danger btn-sm" onclick="deleteUser('${u.id}','${u.username}')">🗑️ ඉවත් කරන්න</button>
-                          </div>`
-                        : '<span class="text-muted" style="font-size:11px">(ඔබ)</span>'
-                    }</td>
-                </tr>`).join('');
+                tbody.innerHTML = displayUsers.map(u => {
+                    const isMyAccount = u.username === Auth.currentUser?.username;
+                    const canEdit = isSuper || (u.role !== 'admin' && u.role !== 'super-admin');
+                    const roleLabel = u.role === 'super-admin' ? 'Super Admin' : (u.role === 'admin' ? 'Admin' : 'Operator');
+
+                    return `<tr>
+                        <td><strong style="color:var(--text-primary)">${u.username}</strong></td>
+                        <td><span class="role-tag ${u.role}">${roleLabel}</span></td>
+                        <td class="text-muted">${u.createdAt ? new Date(u.createdAt).toLocaleDateString('si-LK') : '—'}</td>
+                        <td>${!isMyAccount
+                            ? `<div style="display:flex;gap:6px">
+                                ${canEdit ? `<button class="btn btn-secondary btn-sm" onclick="openEditUser('${u.id}','${u.username}','${u.role}')">✏️ Edit</button>` : ''}
+                                ${canEdit ? `<button class="btn btn-danger btn-sm" onclick="deleteUser('${u.id}','${u.username}')">🗑️ ඉවත් කරන්න</button>` : ''}
+                              </div>`
+                            : '<span class="text-muted" style="font-size:11px">(ඔබ)</span>'
+                        }</td>
+                    </tr>`}).join('');
             }
         }
     } catch (e) { console.error('loadAdminPanel users:', e); }
