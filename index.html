@@ -92,9 +92,12 @@
             <div class="admin-panel-body">
                 <!-- Admin sub-tabs -->
                 <div class="admin-tabs">
-                    <button class="admin-tab-btn active" onclick="switchAdminTab('users',this)">👥 පරිශීලකයන්</button>
-                    <button class="admin-tab-btn" onclick="switchAdminTab('log',this)">📋 ක්‍රියාකාරකම් ලොගය</button>
-                    <button class="admin-tab-btn" onclick="switchAdminTab('password',this)">🔑 මගේ මුරපදය</button>
+                    <button class="admin-tab-btn active" id="admin-tab-btn-users"
+                        onclick="switchAdminTab('users',this)">👥 පරිශීලකයන්</button>
+                    <button class="admin-tab-btn" id="admin-tab-btn-log" onclick="switchAdminTab('log',this)">📋
+                        ක්‍රියාකාරකම් ලොගය</button>
+                    <button class="admin-tab-btn" id="admin-tab-btn-password"
+                        onclick="switchAdminTab('password',this)">🔑 මගේ මුරපදය</button>
                 </div>
 
                 <!-- Users Tab -->

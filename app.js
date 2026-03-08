@@ -110,9 +110,17 @@ const Auth = {
 
     applyRoleUI() {
         const isAdmin = Auth.isAdmin();
+        const isSuper = Auth.isSuper();
         // Admin panel visibility
         const adminPanel = document.getElementById('admin-panel');
         if (adminPanel) adminPanel.style.display = isAdmin ? '' : 'none';
+
+        // Log tab: only for Super Admin
+        const logTabBtn = document.getElementById('admin-tab-btn-log');
+        if (logTabBtn) {
+            logTabBtn.style.display = isSuper ? '' : 'none';
+        }
+
         // Delete buttons: hide for operators
         Auth._patchDeleteButtons();
     },
@@ -201,6 +209,11 @@ const Auth = {
    ADMIN PANEL FUNCTIONS
 ═══════════════════════════════════════ */
 function switchAdminTab(name, btn) {
+    // Only super-admin can see log
+    if (name === 'log' && !Auth.isSuper()) {
+        showToast('සමාවන්න, මෙම ක්‍රියාව සඳහා ඔබට විශේෂ අවසරයක් අවශ්‍යයි', 'error');
+        return;
+    }
     document.querySelectorAll('.admin-tab-panel').forEach(p => p.classList.remove('active'));
     document.querySelectorAll('.admin-tab-btn').forEach(b => b.classList.remove('active'));
     const panel = document.getElementById('admin-tab-' + name);
