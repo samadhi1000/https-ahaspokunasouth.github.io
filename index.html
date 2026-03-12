@@ -406,8 +406,8 @@
                                 <label class="radio-item"><input type="radio" name="residencyType" value="birth">
                                     උපතින්</label>
                                 <label class="radio-item"><input type="radio" name="residencyType" value="marriage">
-                                    විවාහමයින්</label>
-                                <label class="radio-item"><input type="radio" name="residencyType" value="transfer">赴任 /
+                                    විවාහයෙන්</label>
+                                <label class="radio-item"><input type="radio" name="residencyType" value="transfer">
                                     මාරු</label>
                             </div>
                         </div>
@@ -507,8 +507,10 @@
                                 <option value="preschool">පෙර පාසල්</option>
                                 <option value="grade1-5">ශ්‍රේණිය 1 - 5</option>
                                 <option value="grade5-10">ශ්‍රේණිය 5 - 10</option>
-                                <option value="ol">සාමාන්‍ය පෙළ (O/L)</option>
-                                <option value="al">උසස් පෙළ (A/L)</option>
+								 <option value="ol">සාමාන්‍ය පෙළ(O/L)දක්වා</option>
+                                <option value="ol">සාමාන්‍ය පෙළ(O/L)</option>
+								<option value="al">උසස් පෙළ(A/L)දක්වා</option>
+                                <option value="al">උසස් පෙළ(A/L)</option>
                                 <option value="diploma">ඩිප්ලෝමාව</option>
                                 <option value="degree">උපාධිය</option>
                                 <option value="postgrad">පශ්චාද් උපාධිය</option>
@@ -529,7 +531,7 @@
                     <div class="section-title">🏫 අධ්‍යාපන ආයතන තොරතුරු</div>
                     <div class="form-grid">
                         <div class="form-group">
-                            <label class="form-label">ආයතනය ස්වාභාවය</label>
+                            <label class="form-label">ආයතනය ස්වභාවය</label>
                             <div class="radio-group">
                                 <label class="radio-item"><input type="radio" name="eduInstitutionType" value="local">
                                     දේශීය</label>
@@ -538,7 +540,7 @@
                             </div>
                         </div>
                         <div class="form-group">
-                            <label class="form-label" for="eduInstitution">ආයතනය නම</label>
+                            <label class="form-label" for="eduInstitution">ආයතන‌යේ නම</label>
                             <input type="text" class="form-control" id="eduInstitution"
                                 placeholder="ආයතනයේ නම ඇතුළත් කරන්න">
                         </div>
@@ -571,7 +573,7 @@
                             </div>
                         </div>
                         <div class="form-group">
-                            <label class="form-label" for="employmentNature">රැකියාවේ ස්වාභාවය</label>
+                            <label class="form-label" for="employmentNature">රැකියාවේ ස්වභාවය</label>
                             <input type="text" class="form-control" id="employmentNature"
                                 placeholder="රැකියාවේ ස්වාභාවය">
                         </div>
@@ -709,7 +711,7 @@
                         <table class="grid-table">
                             <thead>
                                 <tr>
-                                    <th>සතා ස්වාභාවය</th>
+                                    <th>සතා ස්වභාවය</th>
                                     <th>ගැහැණු ප්‍රමාණය</th>
                                     <th>පිරිමි ප්‍රමාණය</th>
                                     <th></th>
@@ -727,7 +729,7 @@
                     <div class="form-group">
                         <label class="form-label" for="equipment">උපකරණ විස්තර</label>
                         <textarea class="form-control" id="equipment"
-                            placeholder="ගෙතිරිගු, ළිං, ජල පොම්පා, ජනක යන්ත්‍ර ආදිය..." rows="3"></textarea>
+                            placeholder="අත්ට්රැක්ටර්, ළිං, ජල පොම්ප, ජනක යන්ත්‍ර ආදිය..." rows="3"></textarea>
                     </div>
                 </div>
             </div>
@@ -761,7 +763,7 @@
                         <div class="form-group">
                             <label class="form-label">
                                 <label class="checkbox-item" style="margin-bottom:6px">
-                                    <input type="checkbox" id="aid-mahajanadara"> මහජනාදාර ආධාර
+                                    <input type="checkbox" id="aid-mahajanadara"> මහජනාධාර
                                 </label>
                             </label>
                             <input type="number" class="form-control" id="aid-mahajanadara-amt"
@@ -771,7 +773,7 @@
                         <div class="form-group">
                             <label class="form-label">
                                 <label class="checkbox-item" style="margin-bottom:6px">
-                                    <input type="checkbox" id="aid-mahapola"> මහාපොළ ශිෂ්‍යත්ව
+                                    <input type="checkbox" id="aid-mahapola"> මහපොළ ශිෂ්‍යත්ව
                                 </label>
                             </label>
                             <input type="number" class="form-control" id="aid-mahapola-amt"
@@ -815,7 +817,7 @@
             <!-- ══ TAB 6: INCOME / EXPENDITURE ══ -->
             <div class="tab-panel" id="tab-panel-5">
                 <div class="form-section">
-                    <div class="section-title">💰 ආදායමේ ස්වාභාවය (Monthly Income)</div>
+                    <div class="section-title">💰 ආදායම් කාණ්ඩය (Monthly Income)</div>
                     <div class="form-grid">
                         <div class="form-group">
                             <label class="form-label" for="inc-salary">වැටුප (රු.)</label>
@@ -918,7 +920,7 @@
                             </div>
                         </div>
                         <div class="form-group">
-                            <label class="form-label" for="otherDisease">රෝගයේ ස්වාභාවය / නම</label>
+                            <label class="form-label" for="otherDisease">රෝගයේ ස්වභාවය / නම</label>
                             <input type="text" class="form-control" id="otherDisease"
                                 placeholder="රෝගයේ නම හෝ ස්වාභාවය">
                         </div>
@@ -941,7 +943,7 @@
                             </div>
                         </div>
                         <div class="form-group">
-                            <label class="form-label" for="disabilityType">ආබාධයේ ස්වාභාවය</label>
+                            <label class="form-label" for="disabilityType">ආබාධයේ ස්වභාවය</label>
                             <input type="text" class="form-control" id="disabilityType"
                                 placeholder="ශාරීරික / මානසික / දෘෂ්ටි...">
                         </div>
@@ -975,7 +977,7 @@
                     <div class="section-title">🏠 නිවාස ව්‍යුහ තොරතුරු</div>
                     <div class="form-grid">
                         <div class="form-group">
-                            <label class="form-label">වහල ස්වාභාවය</label>
+                            <label class="form-label">වහල ස්වභාවය</label>
                             <div class="radio-group" style="flex-wrap:wrap">
                                 <label class="radio-item"><input type="radio" name="roofType" value="tiles"> උළු</label>
                                 <label class="radio-item"><input type="radio" name="roofType" value="asbestos">
@@ -989,14 +991,14 @@
                             </div>
                         </div>
                         <div class="form-group">
-                            <label class="form-label">ගස් බිම ස්වාභාවය</label>
+                            <label class="form-label">ගස් බිම ස්වභාවය</label>
                             <div class="radio-group" style="flex-wrap:wrap">
                                 <label class="radio-item"><input type="radio" name="floorType" value="cement">
                                     සිමෙන්ති</label>
                                 <label class="radio-item"><input type="radio" name="floorType" value="terrazzo">
                                     ටෙරාසෝ</label>
                                 <label class="radio-item"><input type="radio" name="floorType" value="tiles"> පිඟන්
-                                    ගෙඩොල්</label>
+                                  ගඩොල්</label>
                                 <label class="radio-item"><input type="radio" name="floorType" value="wood"> ලී</label>
                                 <label class="radio-item"><input type="radio" name="floorType" value="mud"> මැටි</label>
                             </div>
@@ -1025,7 +1027,7 @@
                             </div>
                         </div>
                         <div class="form-group">
-                            <label class="form-label">ඉන්ධන ස්වාභාවය</label>
+                            <label class="form-label">ඉන්ධන ස්වභාවය</label>
                             <div class="checkbox-group" style="flex-wrap:wrap">
                                 <label class="checkbox-item"><input type="checkbox" name="fuelType" value="firewood">
                                     දර</label>
@@ -1078,7 +1080,7 @@
                             </div>
                         </div>
                         <div class="form-group form-full">
-                            <label class="form-label" for="unsafeNature">අනාරක්ෂිතතාවයේ ස්වාභාවය (ඇත නම්)</label>
+                            <label class="form-label" for="unsafeNature">අනාරක්ෂිතතාවයේ ස්වභාවය (ඇත නම්)</label>
                             <textarea class="form-control" id="unsafeNature" rows="2"
                                 placeholder="නිවාසය / ස්ථානය පිළිබඳ ඕනෑම අනාරක්ෂිත බවක් ඇත්නම් ලියන්න..."></textarea>
                         </div>
